@@ -5,39 +5,40 @@ import (
 	"gorm.io/gorm"
 )
 
-// Permissions Refactor if needed
+type ResourcePermissions struct {
+	Create    bool `json:"create"`
+	Read      bool `json:"read"`
+	UpdateOwn bool `json:"update_own"`
+	UpdateAny bool `json:"update_any"`
+	DeleteOwn bool `json:"delete_own"`
+	DeleteAny bool `json:"delete_any"`
+}
+
+type UserPermissions struct {
+	Create    bool `json:"create"`
+	Read      bool `json:"read"`
+	UpdateOwn bool `json:"update_own"`
+	UpdateAny bool `json:"update_any"`
+	DeleteOwn bool `json:"delete_own"`
+	DeleteAny bool `json:"delete_any"`
+	Ban       bool `json:"ban"`
+}
+
 type Permissions struct {
-	Threads struct {
-		Create bool `json:"create"`
-		Read   bool `json:"get"`
-		Update bool `json:"update"`
-		Delete bool `json:"delete"`
-	} `json:"threads"`
-	Comments struct {
-		Create bool `json:"create"`
-		Read   bool `json:"get"`
-		Update bool `json:"update"`
-		Delete bool `json:"delete"`
-	} `json:"comments"`
-	Users struct {
-		Create bool `json:"create"`
-		Read   bool `json:"get"`
-		Update bool `json:"update"`
-		Delete bool `json:"delete"`
-	} `json:"userController"`
-	Categories struct {
-		Create bool `json:"create"`
-		Read   bool `json:"get"`
-		Update bool `json:"update"`
-		Delete bool `json:"delete"`
-	} `json:"categories"`
+	Threads     ResourcePermissions `json:"threads"`
+	Posts       ResourcePermissions `json:"posts"`
+	Comments    ResourcePermissions `json:"comments"`
+	Categories  ResourcePermissions `json:"categories"`
+	Likes       ResourcePermissions `json:"likes"`
+	Attachments ResourcePermissions `json:"attachments"`
+	Users       UserPermissions     `json:"users"`
 }
 
 type Role struct {
 	gorm.Model
 	Id          uuid.UUID   `json:"ID" gorm:"primary_key"`
 	Name        string      `json:"name" gorm:"index;unique"`
-	Permissions Permissions `json:"permissions" gorm:"type:jsonb"`
+	Permissions Permissions `json:"permissions" gorm:"type:jsonb;serializer:json"`
 }
 
 type User struct {

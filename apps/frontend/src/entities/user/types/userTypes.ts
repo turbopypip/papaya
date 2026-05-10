@@ -1,28 +1,24 @@
 export interface Permissions {
-  threads: {
-    create: boolean;
-    read: boolean;
-    update: boolean;
-    delete: boolean;
-  };
-  comments: {
-    create: boolean;
-    read: boolean;
-    update: boolean;
-    delete: boolean;
-  };
-  users: {
-    create: boolean;
-    read: boolean;
-    update: boolean;
-    delete: boolean;
-  };
-  categories: {
-    create: boolean;
-    read: boolean;
-    update: boolean;
-    delete: boolean;
-  };
+  threads: ResourcePermissions;
+  posts: ResourcePermissions;
+  comments: ResourcePermissions;
+  categories: ResourcePermissions;
+  likes: ResourcePermissions;
+  attachments: ResourcePermissions;
+  users: UserPermissions;
+}
+
+export interface ResourcePermissions {
+  create: boolean;
+  read: boolean;
+  update_own: boolean;
+  update_any: boolean;
+  delete_own: boolean;
+  delete_any: boolean;
+}
+
+export interface UserPermissions extends ResourcePermissions {
+  ban: boolean;
 }
 
 export interface Role {
@@ -47,7 +43,6 @@ export interface SignUpRequestModel {
   username: string;
   email: string;
   password: string;
-  roleId: string; // UUID as string
 }
 
 export interface SignUpResponseModel {

@@ -16,10 +16,9 @@ import (
 func SignUp(c *gin.Context) {
 	// Get name, email, password off req body
 	var body struct {
-		Username string    `json:"username"`
-		Email    string    `json:"email"`
-		Password string    `json:"password"`
-		RoleId   uuid.UUID `json:"role_id"`
+		Username string `json:"username"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -54,7 +53,7 @@ func SignUp(c *gin.Context) {
 		Username:     body.Username,
 		Email:        body.Email,
 		PasswordHash: string(hash),
-		RoleId:       body.RoleId,
+		RoleId:       storage.DefaultUserRoleID,
 	}
 
 	result := storage.DB.Create(&user)

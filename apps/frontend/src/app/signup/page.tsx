@@ -12,7 +12,6 @@ const SignUp = () => {
     username: '',
     email: '',
     password: '',
-    roleId: '1ef94a6d-ed65-6cd0-bfb7-718b8878121a',
   });
 
   const router = useRouter();
@@ -28,7 +27,6 @@ const SignUp = () => {
       username: '',
       email: '',
       password: '',
-      roleId: '1ef94a6d-ed65-6cd0-bfb7-718b8878121a',
     });
     router.push('/');
   };
