@@ -4,9 +4,9 @@ package authController
 
 import (
 	"github.com/gin-gonic/gin"
-	"vkid-backend/internal/http-server/controllers/authController/logIn"
-	"vkid-backend/internal/http-server/controllers/authController/signUp"
-	"vkid-backend/internal/http-server/controllers/authController/validate"
+	"papaya-backend/internal/http-server/controllers/authController/logIn"
+	"papaya-backend/internal/http-server/controllers/authController/signUp"
+	"papaya-backend/internal/http-server/controllers/authController/validate"
 )
 
 // AuthController defines methods for managing auth

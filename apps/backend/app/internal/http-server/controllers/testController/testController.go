@@ -2,7 +2,7 @@ package testController
 
 import (
 	"github.com/gin-gonic/gin"
-	"vkid-backend/internal/http-server/controllers/testController/ping"
+	"papaya-backend/internal/http-server/controllers/testController/ping"
 )
 
 // TestController defines methods for testing api

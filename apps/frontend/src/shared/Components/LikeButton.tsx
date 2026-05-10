@@ -1,4 +1,4 @@
-// vkid-frontend-main/vkid-frontend/src/shared/Components/LikeButton.tsx
+// papaya-frontend-main/papaya-frontend/src/shared/Components/LikeButton.tsx
 
 import React, { FC, useState } from 'react';
 import { Button, Tooltip } from '@chakra-ui/react';

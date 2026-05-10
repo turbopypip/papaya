@@ -2,9 +2,9 @@ package threadController
 
 import (
 	"github.com/gin-gonic/gin"
-	"vkid-backend/internal/http-server/controllers/threadController/createThread"
-	"vkid-backend/internal/http-server/controllers/threadController/getThreads"
-	"vkid-backend/internal/http-server/controllers/threadController/searchThreads"
+	"papaya-backend/internal/http-server/controllers/threadController/createThread"
+	"papaya-backend/internal/http-server/controllers/threadController/getThreads"
+	"papaya-backend/internal/http-server/controllers/threadController/searchThreads"
 )
 
 // ThreadController defines methods for managing roles.

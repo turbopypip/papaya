@@ -1,50 +1,30 @@
-# VKID Backend
+# Papaya Backend
 
-This is a simple Go application that logs "hello world". This README provides instructions on how to build and run the application using Docker and Docker Compose, as well as how to configure environment variables.
+Backend-приложение Papaya написано на Go. Оно предоставляет API форума, работает с PostgreSQL и использует Redis для кэша.
 
-## Prerequisites
+## Запуск из корня проекта
 
-Make sure you have the following installed on your machine:
+Рекомендуемый способ локального запуска - через корневой Docker Compose:
 
-- [Docker](https://www.docker.com/get-started) (with Docker Compose)
-- [Go](https://golang.org/doc/install) (for development purposes)
+```bash
+cp .env.example .env
+docker compose up --build
+```
 
-## Setup
+Backend будет доступен на `http://localhost:8888`.
 
-1. **Clone the repository**:
-   ```bash
-   git clone <https://github.com/Project-practice-MEPHI-2024/vkid-backend.git>
-   cd <vkid-backend>
-   ```
+## Локальная разработка
 
-2. **Добавить локальное окружение**:
-    ```bash
-   #открываем vkid-backend
-   cd vkid-backend
+Из директории backend:
 
-   if [ -f ".local.env" ]; then
-    echo "Файл local.env уже существует."
-   else
+```bash
+cd apps/backend/app
+go mod download
+LOCAL_CONFIG_PATH=config/local.yaml go run cmd/app/main.go
+```
 
-   # Создание файла local.env
-   touch ./local.env
-   echo "./local.env файл создан."
-   fi
+Для работы приложения также нужны переменные окружения из корневого `.env.example`: настройки PostgreSQL, Redis, `SECRET` и `UPLOADS_PATH`.
 
-   # Добавление переменной CONFIG_PATH в local.env, если она не существует
-   if ! grep -q "LOCAL_CONFIG_PATH=config/local.yaml" "$env_file"; then
-   echo "LOCAL_CONFIG_PATH=config/local.yaml" >> "$env_file"
-   echo "Переменная LOCAL_CONFIG_PATH добавлена в $env_file."
-   else
-   echo "Переменная LOCAL_CONFIG_PATHH уже присутствует в $env_file."
-   fi
-   ```
-   Если не работает, надо руками создать local.env в корне проекта и записать в него
-   ```CONFIG_PATH=config/local.yaml```
-   Еще нужно это же добавить к себе в постоянные переменные окружения. возможно понадобится перезапуск пк
+## Docker
 
-
-3. **Build and run**:
-    ```bash
-   docker-compose up
-   ```
+Backend Dockerfile лежит в `apps/backend/Dockerfile`. Старый локальный compose в `apps/backend/docker-compose.yml` оставлен для совместимости, но основной запуск проекта находится в корневом `docker-compose.yml`.

@@ -3,7 +3,7 @@ package storage
 import (
 	"fmt"
 	"os"
-	"vkid-backend/internal/storage/models"
+	"papaya-backend/internal/storage/models"
 
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"

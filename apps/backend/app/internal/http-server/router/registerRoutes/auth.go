@@ -2,8 +2,8 @@ package registerRoutes
 
 import (
 	"github.com/gin-gonic/gin"
-	"vkid-backend/internal/http-server/controllers/authController"
-	"vkid-backend/internal/http-server/middleware"
+	"papaya-backend/internal/http-server/controllers/authController"
+	"papaya-backend/internal/http-server/middleware"
 )
 
 func Auth(group *gin.RouterGroup) {

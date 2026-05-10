@@ -2,7 +2,7 @@ package userController
 
 import (
 	"github.com/gin-gonic/gin"
-	"vkid-backend/internal/http-server/controllers/userController/getUser"
+	"papaya-backend/internal/http-server/controllers/userController/getUser"
 )
 
 // UserController defines methods for managing users

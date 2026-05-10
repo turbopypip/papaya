@@ -1,4 +1,4 @@
-// vkid-frontend/src/app/thread/post/post.tsx
+// papaya-frontend/src/app/thread/post/post.tsx
 'use client';
 
 import React, { FC, useEffect, useState } from 'react';

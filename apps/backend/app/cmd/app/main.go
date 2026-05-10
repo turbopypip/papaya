@@ -6,11 +6,11 @@ package main
 
 import (
 	"log"
-	"vkid-backend/internal/cache"
-	"vkid-backend/internal/config"
-	http_server "vkid-backend/internal/http-server"
-	"vkid-backend/internal/logger"
-	"vkid-backend/internal/storage"
+	"papaya-backend/internal/cache"
+	"papaya-backend/internal/config"
+	http_server "papaya-backend/internal/http-server"
+	"papaya-backend/internal/logger"
+	"papaya-backend/internal/storage"
 )
 
 func main() {

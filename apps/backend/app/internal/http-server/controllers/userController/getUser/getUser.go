@@ -3,7 +3,7 @@ package getUser
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"vkid-backend/internal/storage/models"
+	"papaya-backend/internal/storage/models"
 )
 
 func GetUser(c *gin.Context) {

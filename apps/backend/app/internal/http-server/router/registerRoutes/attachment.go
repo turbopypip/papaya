@@ -2,8 +2,8 @@ package registerRoutes
 
 import (
 	"github.com/gin-gonic/gin"
-	"vkid-backend/internal/http-server/controllers/attachementController"
-	"vkid-backend/internal/http-server/middleware"
+	"papaya-backend/internal/http-server/controllers/attachementController"
+	"papaya-backend/internal/http-server/middleware"
 )
 
 func AttachmentRoutes(router *gin.Engine, baseUrl string) {

@@ -3,10 +3,10 @@ package createThread
 import (
 	"context"
 	"net/http"
+	"papaya-backend/internal/cache"
+	"papaya-backend/internal/storage"
+	"papaya-backend/internal/storage/models"
 	"time"
-	"vkid-backend/internal/cache"
-	"vkid-backend/internal/storage"
-	"vkid-backend/internal/storage/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"

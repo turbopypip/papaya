@@ -1,4 +1,4 @@
-module vkid-backend
+module papaya-backend
 
 go 1.23
 

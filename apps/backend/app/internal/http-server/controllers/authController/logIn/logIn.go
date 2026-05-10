@@ -6,9 +6,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"os"
+	"papaya-backend/internal/storage"
+	"papaya-backend/internal/storage/models"
 	"time"
-	"vkid-backend/internal/storage"
-	"vkid-backend/internal/storage/models"
 )
 
 func LogIn(c *gin.Context) {

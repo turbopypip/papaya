@@ -5,9 +5,9 @@ import (
 	"github.com/gofrs/uuid"
 	"net/http"
 	"os"
+	"papaya-backend/internal/storage"
+	"papaya-backend/internal/storage/models"
 	"path/filepath"
-	"vkid-backend/internal/storage"
-	"vkid-backend/internal/storage/models"
 )
 
 func CreateAttachment(c *gin.Context) {

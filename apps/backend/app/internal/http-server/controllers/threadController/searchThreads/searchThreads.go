@@ -5,8 +5,8 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/lib/pq"
 	"net/http"
-	"vkid-backend/internal/storage"
-	"vkid-backend/internal/storage/models"
+	"papaya-backend/internal/storage"
+	"papaya-backend/internal/storage/models"
 )
 
 func SearchThreads(c *gin.Context) {

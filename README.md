@@ -1,8 +1,8 @@
 # Papaya
 
-Papaya is a fullstack forum project with a Go backend and a Next.js frontend.
+Papaya - fullstack-проект форума с backend на Go и frontend на Next.js.
 
-## Structure
+## Структура
 
 ```text
 papaya/
@@ -18,33 +18,46 @@ papaya/
 └── README.md
 ```
 
-## Apps
+## Приложения
 
 - `apps/backend` - Go API.
-- `apps/frontend` - Next.js frontend.
+- `apps/frontend` - Next.js приложение.
 
-## Local Setup
+## Локальный запуск
 
-Create a local environment file:
+Создайте локальный файл окружения:
 
 ```bash
 cp .env.example .env
 ```
 
-Start the full stack:
+Запустите весь проект:
 
 ```bash
 docker compose up --build
 ```
 
-For development overrides:
+Запуск с dev-настройками:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
-## Documentation
+## Переменные окружения
+
+Шаблон переменных лежит в `.env.example`. Реальный `.env` не коммитится.
+
+Основные группы переменных:
+
+- `POSTGRES_*` - подключение к PostgreSQL.
+- `REDIS_*` - подключение к Redis.
+- `LOCAL_CONFIG_PATH` - путь к YAML-конфигу backend внутри контейнера.
+- `SECRET` - секрет для JWT.
+- `UPLOADS_PATH` - путь для файловых вложений.
+- `NEXT_PUBLIC_API_URL` - публичный URL backend для frontend.
+
+## Документация
 
 - [API](docs/api.md)
-- [Architecture](docs/architecture.md)
-- [Deployment](docs/deployment.md)
+- [Архитектура](docs/architecture.md)
+- [Деплой](docs/deployment.md)

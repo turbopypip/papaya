@@ -3,9 +3,9 @@ package getThreads
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"papaya-backend/internal/storage"
+	"papaya-backend/internal/storage/models"
 	"strconv"
-	"vkid-backend/internal/storage"
-	"vkid-backend/internal/storage/models"
 )
 
 func GetThreads(c *gin.Context) {

@@ -4,8 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
 	"net/http"
-	"vkid-backend/internal/storage"
-	"vkid-backend/internal/storage/models"
+	"papaya-backend/internal/storage"
+	"papaya-backend/internal/storage/models"
 )
 
 // CreateRole добавляет новую роль в базу данных

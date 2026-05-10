@@ -2,7 +2,7 @@ package attachementController
 
 import (
 	"github.com/gin-gonic/gin"
-	"vkid-backend/internal/http-server/controllers/attachementController/createAttachment"
+	"papaya-backend/internal/http-server/controllers/attachementController/createAttachment"
 )
 
 // AttachmentController defines methods for managing roles.

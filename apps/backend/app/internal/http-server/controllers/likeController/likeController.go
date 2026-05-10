@@ -2,9 +2,9 @@ package likeController
 
 import (
 	"github.com/gin-gonic/gin"
-	"vkid-backend/internal/http-server/controllers/likeController/createLike"
-	"vkid-backend/internal/http-server/controllers/likeController/deleteLike" // ⬅️ добавлено
-	"vkid-backend/internal/http-server/controllers/likeController/getLikes"
+	"papaya-backend/internal/http-server/controllers/likeController/createLike"
+	"papaya-backend/internal/http-server/controllers/likeController/deleteLike" // ⬅️ добавлено
+	"papaya-backend/internal/http-server/controllers/likeController/getLikes"
 )
 
 type LikeController interface {

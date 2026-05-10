@@ -7,9 +7,9 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"papaya-backend/internal/storage"
+	"papaya-backend/internal/storage/models"
 	"sync"
-	"vkid-backend/internal/storage"
-	"vkid-backend/internal/storage/models"
 )
 
 type LikeResult struct {

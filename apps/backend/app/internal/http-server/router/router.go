@@ -4,8 +4,8 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"os"
-	"vkid-backend/internal/http-server/middleware"
-	"vkid-backend/internal/http-server/router/registerRoutes"
+	"papaya-backend/internal/http-server/middleware"
+	"papaya-backend/internal/http-server/router/registerRoutes"
 )
 
 func InitRouter() *gin.Engine {

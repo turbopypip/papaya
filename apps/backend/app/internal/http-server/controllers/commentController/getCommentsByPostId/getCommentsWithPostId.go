@@ -4,9 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
 	"net/http"
+	"papaya-backend/internal/storage"
+	"papaya-backend/internal/storage/models"
 	"strconv"
-	"vkid-backend/internal/storage"
-	"vkid-backend/internal/storage/models"
 )
 
 func GetCommentsByPostId(c *gin.Context) {

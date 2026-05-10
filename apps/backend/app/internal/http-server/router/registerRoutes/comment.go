@@ -2,7 +2,7 @@ package registerRoutes
 
 import (
 	"github.com/gin-gonic/gin"
-	"vkid-backend/internal/http-server/controllers/commentController"
+	"papaya-backend/internal/http-server/controllers/commentController"
 )
 
 func Comment(group *gin.RouterGroup) {

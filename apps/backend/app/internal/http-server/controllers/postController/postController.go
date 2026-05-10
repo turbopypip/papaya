@@ -2,8 +2,8 @@ package postController
 
 import (
 	"github.com/gin-gonic/gin"
-	"vkid-backend/internal/http-server/controllers/postController/createPost"
-	"vkid-backend/internal/http-server/controllers/postController/getPostsWithThreadId"
+	"papaya-backend/internal/http-server/controllers/postController/createPost"
+	"papaya-backend/internal/http-server/controllers/postController/getPostsWithThreadId"
 )
 
 // PostController defines methods for managing posts.

@@ -2,8 +2,8 @@ package commentController
 
 import (
 	"github.com/gin-gonic/gin"
-	"vkid-backend/internal/http-server/controllers/commentController/createComment"
-	getCommentsWithPostId "vkid-backend/internal/http-server/controllers/commentController/getCommentsByPostId"
+	"papaya-backend/internal/http-server/controllers/commentController/createComment"
+	getCommentsWithPostId "papaya-backend/internal/http-server/controllers/commentController/getCommentsByPostId"
 )
 
 // CommentController defines methods for managing roles.

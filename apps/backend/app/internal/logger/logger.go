@@ -2,7 +2,7 @@ package logger
 
 import (
 	"os"
-	"vkid-backend/internal/config"
+	"papaya-backend/internal/config"
 
 	"github.com/sirupsen/logrus"
 )

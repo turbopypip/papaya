@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Papaya Frontend
 
-## Getting Started
+Frontend-приложение Papaya написано на Next.js.
 
-First, run the development server:
+## Запуск из корня проекта
+
+Рекомендуемый способ локального запуска всего проекта:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Frontend будет доступен на `http://localhost:3000`.
 
-You can start editing the page by modifying `app/Page.tsx`. The page auto-updates as you edit the file.
+## Локальная разработка
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Из директории frontend:
 
-## Learn More
+```bash
+cd apps/frontend
+npm install
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Сборка
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Настройка API
 
-## Deploy on Vercel
+Frontend читает адрес backend из переменной `NEXT_PUBLIC_API_URL`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Пример:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8888 npm run dev
+```

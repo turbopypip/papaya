@@ -6,9 +6,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"os"
+	"papaya-backend/internal/storage"
+	"papaya-backend/internal/storage/models"
 	"time"
-	"vkid-backend/internal/storage"
-	"vkid-backend/internal/storage/models"
 )
 
 func Auth(c *gin.Context) {

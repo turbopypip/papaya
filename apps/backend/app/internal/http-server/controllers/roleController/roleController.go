@@ -2,7 +2,7 @@ package roleController
 
 import (
 	"github.com/gin-gonic/gin"
-	"vkid-backend/internal/http-server/controllers/roleController/createRole"
+	"papaya-backend/internal/http-server/controllers/roleController/createRole"
 )
 
 // RolesController defines methods for managing roles.

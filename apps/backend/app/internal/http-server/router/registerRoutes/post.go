@@ -1,9 +1,9 @@
 package registerRoutes
 
 import (
+	"papaya-backend/internal/cache"
+	"papaya-backend/internal/http-server/controllers/postController"
 	"time"
-	"vkid-backend/internal/cache"
-	"vkid-backend/internal/http-server/controllers/postController"
 
 	"github.com/gin-gonic/gin"
 )

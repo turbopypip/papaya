@@ -3,8 +3,8 @@ package http_server
 import (
 	"log"
 	"net/http"
-	"vkid-backend/internal/config"
-	r "vkid-backend/internal/http-server/router"
+	"papaya-backend/internal/config"
+	r "papaya-backend/internal/http-server/router"
 )
 
 func RunServer() {

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"vkid-backend/internal/config"
+	"papaya-backend/internal/config"
 
 	"github.com/redis/go-redis/v9"
 )
