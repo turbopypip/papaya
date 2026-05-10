@@ -1,0 +1,40 @@
+.DS_Store
+.playwright-mcp/
+
+# Local project notes
+project.md
+tasks.md
+
+# Environment files
+.env
+.env.*
+!.env.example
+apps/**/.env
+apps/**/.env.*
+!apps/**/.env.example
+
+# IDE/editor
+.idea/
+apps/**/.idea/
+.vscode/
+
+# Frontend
+node_modules/
+apps/**/node_modules/
+apps/frontend/.next/
+apps/frontend/out/
+apps/frontend/build/
+apps/frontend/coverage/
+apps/frontend/next-env.d.ts
+apps/frontend/*.tsbuildinfo
+
+# Backend
+apps/backend/uploads/
+apps/backend/app/app
+apps/backend/app/bin/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

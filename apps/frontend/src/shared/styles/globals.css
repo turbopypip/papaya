@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Faculty+Glyphic&family=Playfair+Display:wght@500&display=swap');
+body {
+    font-family: "Playfair Display", sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+button, input {
+    font-family: "Faculty Glyphic", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+}
+
+h1 {
+    font-weight: 500;
+    font-size: 30px;
+}
+
+h2 {
+    font-weight: 500;
+    font-size: 25px;
+}
+
+h3 {
+    font-weight: 500;
+    font-size: 20px;
+}

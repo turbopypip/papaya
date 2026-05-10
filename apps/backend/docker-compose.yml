@@ -1,0 +1,50 @@
+services:
+  vkid-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./app/config:/config
+      - ./uploads:/uploads
+    ports:
+      - "8888:8888"
+    command: /app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  db:
+    image: postgres:15-alpine  # или используйте подходящую версию PostgreSQL
+    env_file:
+      - .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # сохраняет данные при перезапусках контейнера
+    ports:
+      - "5432:5432"  # Экспорт порта PostgreSQL для локальных подключений (по необходимости)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -p $PG_PORT"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  pgdata:
+  redis_data:
