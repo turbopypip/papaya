@@ -1,7 +1,8 @@
 // papaya-frontend-main/papaya-frontend/src/shared/Components/LikeButton.tsx
 
 import React, { FC, useState } from 'react';
-import { Button, Tooltip } from '@chakra-ui/react';
+import { Button } from '@chakra-ui/react';
+import {Tooltip} from '@/shared/Components/Tooltip/ui/tooltip';
 
 type LikeButtonProps = {
   /**
@@ -31,7 +32,7 @@ const LikeButton: FC<LikeButtonProps> = ({ targetId, initialLiked = false }) => 
   };
 
   return (
-    <Tooltip label={liked ? 'Убрать лайк' : 'Поставить лайк'} fontSize="sm">
+    <Tooltip content={liked ? 'Убрать лайк' : 'Поставить лайк'}>
       <Button
         aria-label={
           liked

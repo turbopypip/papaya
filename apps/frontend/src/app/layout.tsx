@@ -21,7 +21,7 @@ export default function RootLayout({
           <ChakraProvider value={defaultSystem}>
             <Box style={{minHeight: 'calc(100vh - 60px)'}}>
               <Navbar />
-              <Box scroll="auto">{children}</Box>
+              <Box overflow="auto">{children}</Box>
             </Box>
             <Footer />
           </ChakraProvider>

@@ -5,7 +5,7 @@ import {Field} from '@/shared/Components/Field/ui/field';
 import styles from './styles.module.css';
 import {SignUpRequestModel} from '@/entities/user/types/userTypes';
 import {useSignUp} from '@/entities/user/queries/useSignUp';
-import {PasswordInput} from '@/shared/components/PasswordInput/ui/password-input';
+import {PasswordInput} from '@/shared/Components/PasswordInput/ui/password-input';
 import {useRouter} from 'next/navigation';
 const SignUp = () => {
   const [form, setForm] = useState<SignUpRequestModel>({

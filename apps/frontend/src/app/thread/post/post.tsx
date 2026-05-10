@@ -79,7 +79,7 @@ const Post: FC<Props> = ({ post }) => {
   // ====== Лайки для каждого комментария ======
   // Структура: { [commentID]: { liked: boolean; count: number } }
   const [commentLikes, setCommentLikes] = useState<{
-    [key: number]: { liked: boolean; count: number };
+    [key: string]: { liked: boolean; count: number };
   }>({});
 
   // При загрузке комментариев инициализируем состояния likes для них
@@ -100,7 +100,7 @@ const Post: FC<Props> = ({ post }) => {
   }, [comments]);
 
   // Обработчик лайка для комментария по его ID
-  const handleCommentLike = (commentId: number) => {
+  const handleCommentLike = (commentId: string) => {
     setCommentLikes((prev) => {
       const current = prev[commentId];
       if (!current) {
@@ -132,7 +132,9 @@ const Post: FC<Props> = ({ post }) => {
   }, [success]);
 
   // ====== Обработчик изменения textarea (форма комментария) ======
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
     setCommentForm((prev) => ({ ...prev, [name]: value }));
   };

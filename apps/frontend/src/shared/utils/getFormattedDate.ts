@@ -1,6 +1,6 @@
 import {format} from 'date-fns';
 
-export default function getFormattedDate(dateString) {
+export default function getFormattedDate(dateString: string | number | Date) {
   // Парсим строку даты
   const date = new Date(dateString);
 
