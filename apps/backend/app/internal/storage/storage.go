@@ -64,4 +64,6 @@ func InitStorage() {
 	if err != nil {
 		logrus.Fatalf("Failed to create index on title: %v", err)
 	}
+
+	SeedRoles()
 }
