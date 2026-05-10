@@ -31,7 +31,9 @@ npm run build
 
 ## Настройка API
 
-Frontend читает адрес backend из переменной `NEXT_PUBLIC_API_URL`.
+В Docker frontend по умолчанию использует относительный `/api/v1`, а Next.js проксирует запросы на `SERVER_API_URL=http://backend:8888` внутри Docker-сети.
+
+Для локального запуска frontend без compose можно указать публичный backend URL:
 
 Пример:
 

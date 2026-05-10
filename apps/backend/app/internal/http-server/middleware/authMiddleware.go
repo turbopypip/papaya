@@ -16,6 +16,7 @@ func Auth(c *gin.Context) {
 	tokenString, err := c.Cookie("Authorization")
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
+		return
 	}
 
 	// Decode
@@ -28,19 +29,29 @@ func Auth(c *gin.Context) {
 	})
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
+		return
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		// Check the exp
-		if float64(time.Now().Unix()) > claims["exp"].(float64) {
+		expiresAt, ok := claims["exp"].(float64)
+		if !ok || float64(time.Now().Unix()) > expiresAt {
 			c.AbortWithStatus(http.StatusUnauthorized)
+			return
 		}
 
 		// Find the user with token sub
 		var user models.User
-		storage.DB.First(&user, "id = ?", claims["sub"])
+		sub, ok := claims["sub"].(string)
+		if !ok {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		storage.DB.First(&user, "id = ?", sub)
 		if user.Username == "" {
 			c.AbortWithStatus(http.StatusUnauthorized)
+			return
 		}
 
 		// Attach to request
@@ -50,5 +61,6 @@ func Auth(c *gin.Context) {
 		c.Next()
 	} else {
 		c.AbortWithStatus(http.StatusUnauthorized)
+		return
 	}
 }

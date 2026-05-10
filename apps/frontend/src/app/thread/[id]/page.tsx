@@ -52,7 +52,9 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
   useEffect(() => {
     fetchPosts(1, 100);
   }, [success]);
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const {name, value} = e.target;
     setPostForm(prev => ({...prev, [name]: value}));
   };

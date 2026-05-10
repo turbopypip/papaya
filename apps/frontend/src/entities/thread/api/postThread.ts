@@ -1,16 +1,9 @@
-import axios from 'axios';
+import {axiosInstance} from '@/shared/api/axios';
 import {CreateThreadRequest, CreateThreadResponse} from '@/entities/thread';
 
 export const postThread = async (
   thread: CreateThreadRequest,
 ): Promise<CreateThreadResponse> => {
-  const response = await axios.post(
-    'http://localhost:8888/api/v1/thread',
-    thread,
-    {
-      headers: {'Content-Type': 'application/json'},
-      withCredentials: true,
-    },
-  );
+  const response = await axiosInstance.post('/thread', thread);
   return response.data;
 };

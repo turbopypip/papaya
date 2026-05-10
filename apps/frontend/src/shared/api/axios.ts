@@ -18,6 +18,6 @@ axiosInstance.interceptors.response.use(
 );
 
 export const axiosInstanceAdmin = axios.create({
-  baseURL: `${API_URL}/admin`,
+  baseURL: `${API_URL}/api/v1/admin`,
   withCredentials: true, // Включаем отправку cookie
 });
