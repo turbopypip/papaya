@@ -422,8 +422,8 @@ docker compose up --build
 
 ### 17.9. Что не входит в эту задачу
 
-- [ ] Не переходить на GraphQL.
-- [ ] Не внедрять WebSocket, если SSE покрывает сценарий live-обновлений.
-- [ ] Не делать realtime для списка тредов в рамках первой версии, кроме обычной TanStack Query invalidation/polling после создания треда.
-- [ ] Не реализовывать presence, typing indicators или чат.
-- [ ] Не менять UI-библиотеку.
+- [x] Не переходить на GraphQL.
+- [x] Не внедрять WebSocket, если SSE покрывает сценарий live-обновлений.
+- [x] Не делать realtime для списка тредов в рамках первой версии, кроме обычной TanStack Query invalidation/polling после создания треда.
+- [x] Не реализовывать presence, typing indicators или чат.
+- [x] Не менять UI-библиотеку.
