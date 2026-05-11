@@ -3,6 +3,7 @@ package getThread
 import (
 	"errors"
 	"net/http"
+	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
 
@@ -26,6 +27,10 @@ func GetThread(c *gin.Context) {
 	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve thread"})
+		return
+	}
+	if err := attachments.AttachToThread(storage.DB, &thread); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve thread attachments"})
 		return
 	}
 

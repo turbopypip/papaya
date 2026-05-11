@@ -24,7 +24,8 @@ export const useCreatePost = (threadId?: string) => {
     loading: mutation.isPending,
     error:
       mutation.data?.error ??
-      ((mutation.error as any)?.response?.data?.message ||
+      ((mutation.error as any)?.response?.data?.error ||
+        (mutation.error as any)?.response?.data?.message ||
         (mutation.error ? 'Ошибка при отправке поста' : null)),
     success: mutation.isSuccess,
   };

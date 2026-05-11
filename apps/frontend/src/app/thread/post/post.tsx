@@ -38,6 +38,7 @@ import {
   DrawerTrigger,
 } from '@/shared/Components/Drawer/ui/drawer';
 import {LikableType, useLike} from '@/entities/like';
+import {AttachmentGrid, AttachmentPicker} from '@/entities/attachment';
 
 type Props = {
   post: PostType;
@@ -81,10 +82,15 @@ const Post: FC<Props> = ({post}) => {
     content: '',
     post_id: post.ID,
   });
+  const [commentFiles, setCommentFiles] = useState<File[]>([]);
   const [opened, setOpened] = useState<boolean>(false);
   const [commentDrawerOpen, setCommentDrawerOpen] = useState(false);
 
-  const {createComment, loading: creatingComment} = useCreateComment();
+  const {
+    createComment,
+    loading: creatingComment,
+    error: createCommentError,
+  } = useCreateComment();
   const {comments, loaded: commentsLoaded, error: commentsError} =
     useGetCommentsWithPostId(post.ID);
 
@@ -96,24 +102,27 @@ const Post: FC<Props> = ({post}) => {
   };
 
   const handleCreateComment = async () => {
-    await createComment(commentForm);
+    await createComment({...commentForm, attachments: commentFiles});
     setCommentForm({content: '', post_id: post.ID});
+    setCommentFiles([]);
     setCommentDrawerOpen(false);
   };
 
   return (
     <Card.Root marginTop="2em" key={post.ID}>
-      <Card.Body gap="2">
+      <Card.Body gap="2" fontFamily="Roboto, Arial, sans-serif">
         <Card.Description
+          fontFamily="Roboto, Arial, sans-serif"
           mt="2"
           dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(post.content)}}
         />
 
-        <Card.Description mt="2" fontFamily="Faculty Glyphic">
+        <Card.Description mt="2" fontFamily="Roboto, Arial, sans-serif">
           {getFormattedDate(post.CreatedAt)}
         </Card.Description>
 
         <LikeControl likableType="post" likableId={post.ID} />
+        <AttachmentGrid attachments={post.attachments} />
 
         <Card.Footer padding="0">
           <Collapsible.Root
@@ -154,6 +163,16 @@ const Post: FC<Props> = ({post}) => {
                         value={commentForm.content}
                         onChange={handleChange}
                       />
+                      <AttachmentPicker
+                        files={commentFiles}
+                        inputId={`comment-attachments-${post.ID}`}
+                        onChange={setCommentFiles}
+                      />
+                      {createCommentError ? (
+                        <Box color="red.500" marginTop="0.75rem">
+                          {createCommentError}
+                        </Box>
+                      ) : null}
                     </DrawerBody>
                     <DrawerFooter>
                       <DrawerActionTrigger asChild>
@@ -178,11 +197,12 @@ const Post: FC<Props> = ({post}) => {
                   <TimelineItem key={comment.ID}>
                     <TimelineConnector />
                     <TimelineContent>
-                      <TimelineDescription fontFamily="Faculty Glyphic">
+                      <TimelineDescription fontFamily="Roboto, Arial, sans-serif">
                         {getFormattedDate(comment.CreatedAt)}
                       </TimelineDescription>
                       <Flex align="center" mt="1">
                         <Text
+                          fontFamily="Roboto, Arial, sans-serif"
                           textStyle="sm"
                           mt="2"
                           dangerouslySetInnerHTML={{
@@ -194,6 +214,7 @@ const Post: FC<Props> = ({post}) => {
                         likableType="comment"
                         likableId={comment.ID}
                       />
+                      <AttachmentGrid attachments={comment.attachments} />
                     </TimelineContent>
                   </TimelineItem>
                 ))}

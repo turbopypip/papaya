@@ -3,6 +3,7 @@ package getThreads
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
 	"strconv"
@@ -33,6 +34,11 @@ func GetThreads(c *gin.Context) {
 	err = storage.DB.Limit(limit).Offset(offset).Find(&threads).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Filed to retrieve threads"})
+		return
+	}
+	if err := attachments.AttachToThreads(storage.DB, threads); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve thread attachments"})
+		return
 	}
 
 	// Send data

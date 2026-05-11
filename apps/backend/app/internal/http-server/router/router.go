@@ -1,9 +1,11 @@
 package router
 
 import (
+	"os"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"os"
+	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/http-server/middleware"
 	"papaya-backend/internal/http-server/router/registerRoutes"
 )
@@ -16,13 +18,15 @@ func InitRouter() *gin.Engine {
 	router := gin.Default()
 
 	// Make visible files in uploads dir
-	router.Static("/uploads", os.Getenv("UPLOADS_PATH"))
+	if err := os.MkdirAll(attachments.UploadDir(), 0755); err == nil {
+		router.Static("/uploads", attachments.UploadDir())
+	}
 
 	// Apply CORS middleware
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"}, // Allow test requests from frontend
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Content-Type", "Authorization"},
+		AllowHeaders:     []string{"Content-Type", "Authorization", "owner_type", "owner_id"},
 		AllowCredentials: true, // Allow credentials (e.g., cookies)
 	}))
 

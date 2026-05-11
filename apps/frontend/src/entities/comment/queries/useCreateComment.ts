@@ -17,7 +17,8 @@ export const useCreateComment = () => {
     loading: mutation.isPending,
     error:
       mutation.data?.error ??
-      ((mutation.error as any)?.response?.data?.message ||
+      ((mutation.error as any)?.response?.data?.error ||
+        (mutation.error as any)?.response?.data?.message ||
         (mutation.error ? 'Ошибка при отправке комментария' : null)),
     success: mutation.isSuccess,
   };

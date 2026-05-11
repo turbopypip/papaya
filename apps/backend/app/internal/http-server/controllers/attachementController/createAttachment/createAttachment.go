@@ -1,91 +1,67 @@
 package createAttachment
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
-	"net/http"
-	"os"
+	"gorm.io/gorm"
+
+	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
-	"path/filepath"
 )
 
 func CreateAttachment(c *gin.Context) {
-	// Accept metadata in query headers
-	threadIdHeader := c.GetHeader("thread_id")
-	postIdHeader := c.GetHeader("post_id")
+	ownerType := c.PostForm("owner_type")
+	if ownerType == "" {
+		ownerType = c.GetHeader("owner_type")
+	}
 
-	// Check if ids exist in headers and parse them
-	threadId, err := uuid.FromString(threadIdHeader)
+	ownerIDValue := c.PostForm("owner_id")
+	if ownerIDValue == "" {
+		ownerIDValue = c.GetHeader("owner_id")
+	}
+
+	if ownerType != attachments.OwnerTypeThread &&
+		ownerType != attachments.OwnerTypePost &&
+		ownerType != attachments.OwnerTypeComment {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid owner_type"})
+		return
+	}
+
+	ownerID, err := uuid.FromString(ownerIDValue)
 	if err != nil {
-		c.JSON(http.StatusBadRequest,
-			gin.H{
-				"error": "Invalid ThreadId",
-			})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid owner_id"})
 		return
 	}
-	postId, err := uuid.FromString(postIdHeader)
+
+	user, _ := c.Get("user")
+	userData := user.(models.User)
+
+	var savedFiles []string
+	var createdAttachments []models.Attachment
+	err = storage.DB.Transaction(func(tx *gorm.DB) error {
+		var err error
+		createdAttachments, savedFiles, err = attachments.CreateFromRequest(c, tx, ownerType, ownerID, userData.Id)
+		return err
+	})
 	if err != nil {
-		c.JSON(http.StatusBadRequest,
-			gin.H{
-				"error": "Invalid PostId",
-			})
+		attachments.CleanupFiles(savedFiles)
+		if attachments.IsValidationError(err) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create attachment"})
 		return
 	}
-
-	// Getting the file from request
-	file, err := c.FormFile("file")
-	if err != nil {
-		c.JSON(http.StatusBadRequest,
-			gin.H{
-				"error": "File is required",
-			})
-		return
-	}
-
-	// Create an attachment id
-	attachmentId, err := uuid.NewV6()
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Failed to create an attachment id",
-		})
-		return
-	}
-
-	// Using attachment id as its filename
-	filename := attachmentId.String() + filepath.Ext(file.Filename)
-	filePath := os.Getenv("UPLOADS_PATH") + filename
-
-	// Saving attachment in uploads folder
-	if err := c.SaveUploadedFile(file, filePath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to save file",
-		})
-		return
-	}
-
-	// Generating url to file
-	fileUrl := filename
-
-	// Init attachment
-	attachment := models.Attachment{
-		Id:       attachmentId,
-		Url:      fileUrl,
-		ThreadId: threadId,
-		PostId:   postId,
-	}
-
-	// Save attachment
-	result := storage.DB.Create(&attachment)
-	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create attachment",
-		})
+	if len(createdAttachments) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File is required"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":    "User created successfully",
-		"attachment": attachment,
+		"message":     "created attachment",
+		"attachments": createdAttachments,
 	})
 }

@@ -17,7 +17,8 @@ export const usePostThread = () => {
     loading: mutation.isPending,
     error:
       (mutation.data?.error as string | undefined) ??
-      ((mutation.error as any)?.response?.data?.message ||
+      ((mutation.error as any)?.response?.data?.error ||
+        (mutation.error as any)?.response?.data?.message ||
         (mutation.error ? 'Ошибка при отправке треда' : null)),
     success: mutation.isSuccess,
   };

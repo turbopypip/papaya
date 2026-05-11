@@ -3,13 +3,16 @@ package createThread
 import (
 	"context"
 	"net/http"
+	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/cache"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
+	"gorm.io/gorm"
 )
 
 func CreateThread(c *gin.Context) {
@@ -18,12 +21,22 @@ func CreateThread(c *gin.Context) {
 		Categories []string `json:"categories"`
 	}
 
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if strings.HasPrefix(c.GetHeader("Content-Type"), "multipart/form-data") {
+		body.Title = c.PostForm("title")
+		body.Categories = c.PostFormArray("categories")
+	} else if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "Failed to get body",
 			"details": err.Error(),
 		})
 		return
+	}
+	if strings.TrimSpace(body.Title) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Thread title is required"})
+		return
+	}
+	if body.Categories == nil {
+		body.Categories = []string{}
 	}
 
 	// init thread id
@@ -48,9 +61,33 @@ func CreateThread(c *gin.Context) {
 		UserId:     userData.Id,
 	}
 
-	// save thread
-	result := storage.DB.Create(&thread)
-	if result.Error != nil {
+	var savedFiles []string
+	err = storage.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&thread).Error; err != nil {
+			return err
+		}
+
+		createdAttachments, paths, err := attachments.CreateFromRequest(
+			c,
+			tx,
+			attachments.OwnerTypeThread,
+			thread.Id,
+			userData.Id,
+		)
+		savedFiles = append(savedFiles, paths...)
+		if err != nil {
+			return err
+		}
+
+		thread.Attachments = createdAttachments
+		return nil
+	})
+	if err != nil {
+		attachments.CleanupFiles(savedFiles)
+		if attachments.IsValidationError(err) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to create thread",
 		})

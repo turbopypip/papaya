@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
 	"net/http"
+	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
 	"strconv"
@@ -46,6 +47,11 @@ func GetPostsWithThreadId(c *gin.Context) {
 		Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Filed to retrieve posts"})
+		return
+	}
+	if err := attachments.AttachToPosts(storage.DB, posts); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve post attachments"})
+		return
 	}
 
 	// Send data

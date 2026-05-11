@@ -35,6 +35,7 @@ import {CreatePostRequest} from '@/entities/post/types/postTypes';
 import Post from '@/app/thread/post/post';
 import {useGetThread} from '@/entities/thread/queries/useGetThread';
 import {useThreadEvents} from '@/entities/thread/queries/useThreadEvents';
+import {AttachmentGrid, AttachmentPicker} from '@/entities/attachment';
 
 const ThreadPage = ({params}: {params: {id: string}}) => {
   useThreadEvents(params.id);
@@ -52,6 +53,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
     content: '',
     thread_id: params.id,
   });
+  const [postFiles, setPostFiles] = useState<File[]>([]);
   const [postDrawerOpen, setPostDrawerOpen] = useState(false);
 
   const {createPost, loading: creatingPost, error: createPostError} =
@@ -69,8 +71,9 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
   };
 
   const handleCreatePost = async () => {
-    await createPost(postForm);
+    await createPost({...postForm, attachments: postFiles});
     setPostForm({content: '', thread_id: params.id});
+    setPostFiles([]);
     setPostDrawerOpen(false);
   };
 
@@ -121,6 +124,16 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
               value={postForm.content}
               onChange={handleChange}
             />
+            <AttachmentPicker
+              files={postFiles}
+              inputId="post-attachments"
+              onChange={setPostFiles}
+            />
+            {createPostError ? (
+              <Box color="red.500" marginTop="0.75rem">
+                {createPostError}
+              </Box>
+            ) : null}
           </DrawerBody>
           <DrawerFooter>
             <DrawerActionTrigger asChild>
@@ -136,22 +149,23 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
         </DrawerContent>
       </DrawerRoot>
       <Card.Root marginTop="1em">
-        <Card.Body gap="2">
-          <Card.Title mt="2" fontFamily="Faculty Glyphic">
+        <Card.Body gap="2" fontFamily="Roboto, Arial, sans-serif">
+          <Card.Title mt="2" fontFamily="Roboto, Arial, sans-serif">
             {thread.title}
           </Card.Title>
           <Card.Description>
             <Box display="flex" gap="2">
-              {thread.categories.map(categorie => (
+              {(thread.categories ?? []).map(categorie => (
                 <Tag key={categorie} colorScheme="purple">
                   {categorie}
                 </Tag>
               ))}
             </Box>
           </Card.Description>
-          <Card.Description mt="2" fontFamily="Faculty Glyphic">
+          <Card.Description mt="2" fontFamily="Roboto, Arial, sans-serif">
             {getFormattedDate(thread.CreatedAt)}
           </Card.Description>
+          <AttachmentGrid attachments={thread.attachments} />
         </Card.Body>
       </Card.Root>
       {createPostError ? (
