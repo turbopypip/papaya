@@ -90,5 +90,13 @@ func InitStorage() {
 		logrus.Fatalf("Failed to create unique like index: %v", err)
 	}
 
+	err = DB.Exec(`
+		CREATE INDEX IF NOT EXISTS idx_attachment_owner
+		ON attachments (owner_type, owner_id);
+	`).Error
+	if err != nil {
+		logrus.Fatalf("Failed to create attachment owner index: %v", err)
+	}
+
 	SeedRoles()
 }

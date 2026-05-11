@@ -3,14 +3,17 @@ package createPost
 import (
 	"context"
 	"net/http"
+	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/cache"
 	"papaya-backend/internal/realtime"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
+	"gorm.io/gorm"
 )
 
 func CreatePost(c *gin.Context) {
@@ -19,12 +22,23 @@ func CreatePost(c *gin.Context) {
 		ThreadId uuid.UUID `json:"thread_id"`
 	}
 
-	// check if body exists
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if strings.HasPrefix(c.GetHeader("Content-Type"), "multipart/form-data") {
+		body.Content = c.PostForm("content")
+		threadID, err := uuid.FromString(c.PostForm("thread_id"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid thread id"})
+			return
+		}
+		body.ThreadId = threadID
+	} else if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "Failed to get body",
 			"details": err.Error(),
 		})
+		return
+	}
+	if strings.TrimSpace(body.Content) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Post content is required"})
 		return
 	}
 
@@ -50,9 +64,33 @@ func CreatePost(c *gin.Context) {
 		ThreadId: body.ThreadId,
 	}
 
-	// save post
-	result := storage.DB.Create(&post)
-	if result.Error != nil {
+	var savedFiles []string
+	err = storage.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&post).Error; err != nil {
+			return err
+		}
+
+		createdAttachments, paths, err := attachments.CreateFromRequest(
+			c,
+			tx,
+			attachments.OwnerTypePost,
+			post.Id,
+			userData.Id,
+		)
+		savedFiles = append(savedFiles, paths...)
+		if err != nil {
+			return err
+		}
+
+		post.Attachments = createdAttachments
+		return nil
+	})
+	if err != nil {
+		attachments.CleanupFiles(savedFiles)
+		if attachments.IsValidationError(err) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to create post",
 		})

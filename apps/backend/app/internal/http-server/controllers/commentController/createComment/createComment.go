@@ -3,10 +3,13 @@ package createComment
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
+	"gorm.io/gorm"
 	"net/http"
+	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/realtime"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
+	"strings"
 )
 
 func CreateComment(c *gin.Context) {
@@ -15,12 +18,23 @@ func CreateComment(c *gin.Context) {
 		PostId  uuid.UUID `json:"post_id"`
 	}
 
-	// check if body exists
-	if err := c.ShouldBindJSON(&body); err != nil {
+	if strings.HasPrefix(c.GetHeader("Content-Type"), "multipart/form-data") {
+		body.Content = c.PostForm("content")
+		postID, err := uuid.FromString(c.PostForm("post_id"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post id"})
+			return
+		}
+		body.PostId = postID
+	} else if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "Failed to get body",
 			"details": err.Error(),
 		})
+		return
+	}
+	if strings.TrimSpace(body.Content) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Comment content is required"})
 		return
 	}
 
@@ -46,9 +60,33 @@ func CreateComment(c *gin.Context) {
 		PostId:  body.PostId,
 	}
 
-	// save Comment
-	result := storage.DB.Create(&comment)
-	if result.Error != nil {
+	var savedFiles []string
+	err = storage.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&comment).Error; err != nil {
+			return err
+		}
+
+		createdAttachments, paths, err := attachments.CreateFromRequest(
+			c,
+			tx,
+			attachments.OwnerTypeComment,
+			comment.Id,
+			userData.Id,
+		)
+		savedFiles = append(savedFiles, paths...)
+		if err != nil {
+			return err
+		}
+
+		comment.Attachments = createdAttachments
+		return nil
+	})
+	if err != nil {
+		attachments.CleanupFiles(savedFiles)
+		if attachments.IsValidationError(err) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to create comment",
 		})

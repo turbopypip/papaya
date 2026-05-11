@@ -46,7 +46,7 @@ const ThreadsTable: FC<Props> = ({threads, loaded, error}) => {
             <Table.Cell>{thread.title}</Table.Cell>
             <Table.Cell>
               <Box gap="2" display="flex" justifyContent="flex-end">
-                {thread.categories.map(categorie => (
+                {(thread.categories ?? []).map(categorie => (
                   <Tag key={categorie} colorScheme="purple">
                     {categorie}
                   </Tag>

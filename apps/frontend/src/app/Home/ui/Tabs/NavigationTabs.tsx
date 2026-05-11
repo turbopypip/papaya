@@ -16,6 +16,7 @@ import {useValidate} from '@/entities/user/queries/useValidate';
 import {RxCross2} from 'react-icons/rx';
 import {CreateThreadRequest} from '@/entities/thread';
 import {usePostThread} from '@/entities/thread/queries/usePostThread';
+import {AttachmentPicker} from '@/entities/attachment';
 import {FaPlus} from 'react-icons/fa';
 import {
   DrawerActionTrigger,
@@ -37,10 +38,15 @@ const NavigationTabs = () => {
     title: '',
     categories: [],
   });
+  const [threadFiles, setThreadFiles] = useState<File[]>([]);
   const [threadDrawerOpen, setThreadDrawerOpen] = useState(false);
 
   const {threads, loaded, error} = useGetThreads(1, 100);
-  const {createThread, loading: creatingThread} = usePostThread();
+  const {
+    createThread,
+    loading: creatingThread,
+    error: createThreadError,
+  } = usePostThread();
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -71,8 +77,9 @@ const NavigationTabs = () => {
   };
 
   const handleCreateThread = async () => {
-    await createThread(threadForm);
+    await createThread({...threadForm, attachments: threadFiles});
     setThreadForm({title: '', categories: []});
+    setThreadFiles([]);
     setThreadDrawerOpen(false);
   };
 
@@ -128,6 +135,16 @@ const NavigationTabs = () => {
                     placeholder="Enter some categories"
                     onKeyDown={handleCategoryKeyDown}
                   />
+                  <AttachmentPicker
+                    files={threadFiles}
+                    inputId="thread-attachments"
+                    onChange={setThreadFiles}
+                  />
+                  {createThreadError ? (
+                    <Box color="red.500" marginTop="0.75rem">
+                      {createThreadError}
+                    </Box>
+                  ) : null}
                 </DrawerBody>
                 <DrawerFooter>
                   <DrawerActionTrigger asChild>

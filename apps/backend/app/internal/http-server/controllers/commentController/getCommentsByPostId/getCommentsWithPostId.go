@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
 	"net/http"
+	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
 	"strconv"
@@ -46,6 +47,11 @@ func GetCommentsByPostId(c *gin.Context) {
 		Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Filed to retrieve posts"})
+		return
+	}
+	if err := attachments.AttachToComments(storage.DB, comments); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve comment attachments"})
+		return
 	}
 
 	// Send data
