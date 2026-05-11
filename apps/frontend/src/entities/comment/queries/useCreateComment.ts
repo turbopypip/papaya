@@ -1,32 +1,24 @@
 import {postComment} from '@/entities/comment/api/postComment';
-import {useState} from 'react';
 import {CreateCommentRequest} from '@/entities/comment/types/commentTypes';
-import {postThread} from '@/entities/post/api/postPost';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 export const useCreateComment = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<boolean | null>(null);
+  const queryClient = useQueryClient();
 
-  const createComment = async (comment: CreateCommentRequest) => {
-    try {
-      setLoading(true);
-      setError(null);
-      setSuccess(null);
+  const mutation = useMutation({
+    mutationFn: (comment: CreateCommentRequest) => postComment(comment),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({queryKey: ['comments', variables.post_id]});
+    },
+  });
 
-      const response = await postComment(comment);
-
-      if (response.error) {
-        setError(response.error);
-      } else {
-        setSuccess(true);
-      }
-    } catch (err) {
-      setError('Ошибка при отправке поста');
-    } finally {
-      setLoading(false);
-    }
+  return {
+    createComment: mutation.mutateAsync,
+    loading: mutation.isPending,
+    error:
+      mutation.data?.error ??
+      ((mutation.error as any)?.response?.data?.message ||
+        (mutation.error ? 'Ошибка при отправке комментария' : null)),
+    success: mutation.isSuccess,
   };
-
-  return {createComment, loading, error, success};
 };

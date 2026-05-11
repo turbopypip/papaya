@@ -4,6 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
 	"net/http"
+	"papaya-backend/internal/http-server/controllers/likeController/likeState"
+	"papaya-backend/internal/realtime"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
 )
@@ -19,16 +21,19 @@ func DeleteLike(c *gin.Context) {
 		return
 	}
 
-	if body.LikableType != models.LikablePost && body.LikableType != models.LikableComment {
+	if !likeState.ValidateLikableType(body.LikableType) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid likable type"})
 		return
 	}
 
-	user, _ := c.Get("user")
-	userData := user.(models.User)
+	userData, ok := likeState.CurrentUser(c)
+	if !ok {
+		return
+	}
 
 	result := storage.DB.
 		Where("user_id = ? AND likable_id = ? AND likable_type = ?", userData.Id, body.LikableID, body.LikableType).
+		Unscoped().
 		Delete(&models.Like{})
 
 	if result.Error != nil {
@@ -36,10 +41,24 @@ func DeleteLike(c *gin.Context) {
 		return
 	}
 
-	if result.RowsAffected == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"message": "Like not found"})
+	state, err := likeState.Load(body.LikableID, body.LikableType, userData.Id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load likes"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Like deleted"})
+	message := "Like deleted"
+	if result.RowsAffected == 0 {
+		message = "Like not found"
+	} else if threadID, ok, err := likeState.ResolveThreadID(body.LikableID, body.LikableType); err == nil && ok {
+		realtime.DefaultHub.Publish(threadID.String(), realtime.Event{
+			Type:        realtime.EventLikeDeleted,
+			ThreadID:    threadID.String(),
+			LikableType: body.LikableType,
+			LikableID:   body.LikableID.String(),
+			Count:       state.Count,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": message, "state": state})
 }

@@ -18,8 +18,11 @@ const SignUp = () => {
 
   const {signUp, loaded, error} = useSignUp();
 
-  const handleSubmit = () => {
-    signUp(form);
+  const handleSubmit = async () => {
+    const response = await signUp(form);
+    if (response != null) {
+      router.push('/');
+    }
   };
 
   const handleCancel = () => {
@@ -35,7 +38,7 @@ const SignUp = () => {
     setForm(prev => ({...prev, [name]: value}));
   };
 
-  if (loaded && error != null) {
+  if (error != null) {
     return <div>{error}</div>;
   }
 
@@ -73,8 +76,8 @@ const SignUp = () => {
           <Button variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
-          <Button variant="solid" onClick={handleSubmit}>
-            Sign up
+          <Button variant="solid" disabled={loaded} onClick={handleSubmit}>
+            {loaded ? 'Signing up...' : 'Sign up'}
           </Button>
         </Card.Footer>
       </Card.Root>

@@ -1,124 +1,101 @@
-// TODO: test error handling
-
 package getLikes
 
 import (
+	"net/http"
+	"papaya-backend/internal/http-server/controllers/likeController/likeState"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
-	"github.com/sirupsen/logrus"
-	"net/http"
-	"papaya-backend/internal/storage"
-	"papaya-backend/internal/storage/models"
-	"sync"
 )
 
-type LikeResult struct {
-	LikableID     string `json:"likable_id"`
-	LikableType   string `json:"likable_type"`
-	LikeCount     int    `json:"like_count"`
-	IsLikedByUser bool   `json:"is_liked_by_user"`
-	ErrorMessage  string `json:"error,omitempty"`
-}
-
-func LoadLikesCount(likableID uuid.UUID, likableType string, userID uuid.UUID) (int, bool, error) {
-
-	var result struct {
-		LikeCount     int
-		IsLikedByUser bool
-	}
-
-	// Query the database for likes
-	err := storage.DB.Raw(`
-		SELECT
-			COUNT(*) AS like_count,
-			COUNT(CASE WHEN user_id = ? THEN 1 END) > 0 AS is_liked_by_user
-		FROM likes
-		WHERE likable_id = ? AND likable_type = ?
-	`, userID, likableID, likableType).Scan(&result).Error
-	if err != nil {
-		return 0, false, err
-	}
-
-	// Return the count of likes
-	return result.LikeCount, result.IsLikedByUser, nil
+type batchRequest struct {
+	Likables []struct {
+		ID   string `json:"likable_id"`
+		Type string `json:"likable_type"`
+	} `json:"likables"`
 }
 
 func GetLikes(c *gin.Context) {
-	var body struct {
-		Likables []struct {
-			ID   string `json:"likable_id"`
-			Type string `json:"likable_type"`
-		} `json:"likables"`
-	}
+	likableIDParam := c.Query("likable_id")
+	likableType := c.Query("likable_type")
 
-	// Check if body exists
-	if err := c.BindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+	if likableIDParam == "" || likableType == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "likable_id and likable_type query params are required"})
 		return
 	}
 
-	// load user from context, it should exist after authentication
-	user, _ := c.Get("user")
-	userData := user.(models.User)
+	state, ok := loadStateFromParams(c, likableIDParam, likableType)
+	if !ok {
+		return
+	}
 
-	// An array with like counts
-	results := make([]LikeResult, len(body.Likables))
-	var wg sync.WaitGroup
-	var stopSignal = make(chan struct{})
-	errorChan := make(chan error, 1)
+	c.JSON(http.StatusOK, state)
+}
 
-	for i, likable := range body.Likables {
-		// check if
-		if likable.Type == "" || likable.ID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "expected 2 args. 1 or 0 given", "likeable": likable})
+func GetLikesBatch(c *gin.Context) {
+	userData, ok := likeState.CurrentUser(c)
+	if !ok {
+		return
+	}
+
+	var body batchRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format", "details": err.Error()})
+		return
+	}
+
+	results := make([]likeState.Result, 0, len(body.Likables))
+	for _, likable := range body.Likables {
+		if likable.ID == "" || likable.Type == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "likable_id and likable_type are required"})
 			return
 		}
 
-		id, err := uuid.FromString(likable.ID)
+		if !likeState.ValidateLikableType(likable.Type) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid likable type"})
+			return
+		}
+
+		likableID, err := uuid.FromString(likable.ID)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid likable id"})
 			return
 		}
 
-		wg.Add(1)
-		go func(i int, id uuid.UUID, t string) {
-			defer wg.Done()
-			select {
-			case <-stopSignal:
-				return
-			default:
-				count, isLikedByUser, err := LoadLikesCount(id, t, userData.Id)
+		state, err := likeState.Load(likableID, likable.Type, userData.Id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load likes"})
+			return
+		}
 
-				if err != nil {
-					// sending first error
-					select {
-					case errorChan <- err: // Sending error
-					default: // If already send an error do nothing
-					}
-					close(stopSignal) // closing goroutines
-					return
-				}
-
-				results[i] = LikeResult{
-					LikableID:     id.String(),
-					LikableType:   t,
-					IsLikedByUser: isLikedByUser,
-					LikeCount:     count,
-				}
-			}
-		}(i, id, likable.Type)
-	}
-	wg.Wait()
-
-	// error check
-	select {
-	case err := <-errorChan: // If got an error
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	default: // No errors
+		results = append(results, state)
 	}
 
-	logrus.Info(results)
-	// Sending results to user
 	c.JSON(http.StatusOK, gin.H{"results": results})
+}
+
+func loadStateFromParams(c *gin.Context, likableIDParam, likableType string) (likeState.Result, bool) {
+	userData, ok := likeState.CurrentUser(c)
+	if !ok {
+		return likeState.Result{}, false
+	}
+
+	if !likeState.ValidateLikableType(likableType) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid likable type"})
+		return likeState.Result{}, false
+	}
+
+	likableID, err := uuid.FromString(likableIDParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid likable id"})
+		return likeState.Result{}, false
+	}
+
+	state, err := likeState.Load(likableID, likableType, userData.Id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load likes"})
+		return likeState.Result{}, false
+	}
+
+	return state, true
 }

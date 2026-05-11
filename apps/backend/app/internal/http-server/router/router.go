@@ -21,7 +21,7 @@ func InitRouter() *gin.Engine {
 	// Apply CORS middleware
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"}, // Allow test requests from frontend
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Content-Type", "Authorization"},
 		AllowCredentials: true, // Allow credentials (e.g., cookies)
 	}))
@@ -41,6 +41,11 @@ func InitRouter() *gin.Engine {
 	threadRoutes := api.Group("/thread")
 	threadRoutes.Use(middleware.Auth)
 	registerRoutes.Thread(threadRoutes)
+
+	// Realtime events
+	eventRoutes := api.Group("/events")
+	eventRoutes.Use(middleware.Auth)
+	registerRoutes.Events(eventRoutes)
 
 	// Role
 	roleRoutes := api.Group("/role")

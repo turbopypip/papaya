@@ -1,36 +1,27 @@
 import {getCommentsWithPostId} from '@/entities/comment/api/getCommentsWithPostId';
-import {useState} from 'react';
-import {Comment} from '@/entities/comment/types/commentTypes';
+import {useQuery} from '@tanstack/react-query';
 
-export const useGetCommentsWithPostId = () => {
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export const useGetCommentsWithPostId = (
+  postId?: string,
+  page = 1,
+  limit = 100,
+) => {
+  const query = useQuery({
+    queryKey: ['comments', postId, page, limit],
+    queryFn: () => getCommentsWithPostId(postId ?? '', page, limit),
+    enabled: Boolean(postId),
+    refetchInterval: 2000,
+    refetchIntervalInBackground: true,
+  });
 
-  const fetchComments = async (
-    post_id: string,
-    page: number,
-    limit: number,
-  ) => {
-    try {
-      setLoaded(true);
-      setError(null);
-
-      const response = await getCommentsWithPostId(post_id, page, limit);
-
-      if (response.error) {
-        setError(response.error);
-      }
-
-      setComments(response.comments);
-    } catch (err: any) {
-      const errorMessage =
-        err.response?.data?.message || 'Ошибка получения комментариев';
-      setError(errorMessage);
-    } finally {
-      setLoaded(false);
-    }
+  return {
+    comments: query.data?.comments ?? [],
+    loaded: query.isLoading,
+    error:
+      query.data?.error ??
+      ((query.error as any)?.response?.data?.message ||
+        (query.error ? 'Ошибка получения комментариев' : null)),
+    fetchComments: query.refetch,
+    refetch: query.refetch,
   };
-
-  return {comments, loaded, error, fetchComments};
 };

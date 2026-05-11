@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useState} from 'react';
 import styles from './styles.module.css';
 import {
   Link,
@@ -14,7 +14,7 @@ import {
 import ThreadsTable from '@/app/Home/ui/ThreadsTable/ThreadsTable';
 import {useValidate} from '@/entities/user/queries/useValidate';
 import {RxCross2} from 'react-icons/rx';
-import {CreateThreadRequest, useThreadStore} from '@/entities/thread';
+import {CreateThreadRequest} from '@/entities/thread';
 import {usePostThread} from '@/entities/thread/queries/usePostThread';
 import {FaPlus} from 'react-icons/fa';
 import {
@@ -37,14 +37,10 @@ const NavigationTabs = () => {
     title: '',
     categories: [],
   });
+  const [threadDrawerOpen, setThreadDrawerOpen] = useState(false);
 
-  const {threads, loaded, error, fetchThreads} = useGetThreads();
-  const setThreads = useThreadStore(state => state.setThreads);
-  const {createThread, success} = usePostThread();
-
-  useEffect(() => {
-    fetchThreads(1, 100);
-  }, [success]);
+  const {threads, loaded, error} = useGetThreads(1, 100);
+  const {createThread, loading: creatingThread} = usePostThread();
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -74,6 +70,12 @@ const NavigationTabs = () => {
     }));
   };
 
+  const handleCreateThread = async () => {
+    await createThread(threadForm);
+    setThreadForm({title: '', categories: []});
+    setThreadDrawerOpen(false);
+  };
+
   return (
     <Tabs.Root
       defaultValue="threads"
@@ -88,7 +90,10 @@ const NavigationTabs = () => {
       <Tabs.Content value="threads">
         {isAuthenticated ? (
           <Box>
-            <DrawerRoot placement={'bottom'}>
+            <DrawerRoot
+              placement={'bottom'}
+              open={threadDrawerOpen}
+              onOpenChange={details => setThreadDrawerOpen(details.open)}>
               <DrawerBackdrop />
               <DrawerTrigger asChild>
                 <Button variant="outline" size="sm" margin="1.5em 0 1.5em 0">
@@ -128,11 +133,11 @@ const NavigationTabs = () => {
                   <DrawerActionTrigger asChild>
                     <Button variant="outline">Cancel</Button>
                   </DrawerActionTrigger>
-                  <DrawerActionTrigger asChild>
-                    <Button onClick={() => createThread(threadForm)}>
-                      Publish
-                    </Button>
-                  </DrawerActionTrigger>
+                  <Button
+                    disabled={creatingThread}
+                    onClick={handleCreateThread}>
+                    {creatingThread ? 'Publishing...' : 'Publish'}
+                  </Button>
                 </DrawerFooter>
                 <DrawerCloseTrigger />
               </DrawerContent>
@@ -141,7 +146,6 @@ const NavigationTabs = () => {
               threads={threads}
               loaded={loaded}
               error={error}
-              setThreads={setThreads}
             />
           </Box>
         ) : (

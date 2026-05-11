@@ -65,5 +65,30 @@ func InitStorage() {
 		logrus.Fatalf("Failed to create index on title: %v", err)
 	}
 
+	err = DB.Exec("DELETE FROM likes WHERE deleted_at IS NOT NULL;").Error
+	if err != nil {
+		logrus.Fatalf("Failed to clean deleted likes: %v", err)
+	}
+
+	err = DB.Exec(`
+		DELETE FROM likes a
+		USING likes b
+		WHERE a.ctid < b.ctid
+			AND a.user_id = b.user_id
+			AND a.likable_id = b.likable_id
+			AND a.likable_type = b.likable_type;
+	`).Error
+	if err != nil {
+		logrus.Fatalf("Failed to deduplicate likes: %v", err)
+	}
+
+	err = DB.Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_user_likable
+		ON likes (user_id, likable_id, likable_type);
+	`).Error
+	if err != nil {
+		logrus.Fatalf("Failed to create unique like index: %v", err)
+	}
+
 	SeedRoles()
 }

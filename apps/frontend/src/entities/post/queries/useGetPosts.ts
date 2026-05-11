@@ -1,32 +1,26 @@
-import {useState} from 'react';
 import {getPosts} from '@/entities/post/api/getPosts';
-import {Post} from '@/entities/post/types/postTypes';
+import {useQuery} from '@tanstack/react-query';
 
 export const useGetPosts = (threadId: string) => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const page = 1;
+  const limit = 100;
 
-  const fetchPosts = async (page: number, limit: number) => {
-    try {
-      setLoaded(true);
-      setError(null);
+  const query = useQuery({
+    queryKey: ['posts', threadId, page, limit],
+    queryFn: () => getPosts(threadId, page, limit),
+    enabled: Boolean(threadId),
+    refetchInterval: 2000,
+    refetchIntervalInBackground: true,
+  });
 
-      const response = await getPosts(threadId, page, limit);
-
-      if (response.error) {
-        setError(response.error);
-      }
-
-      setPosts(response.posts);
-    } catch (err: any) {
-      const errorMessage =
-        err.response?.data?.message || 'Ошибка получения постов';
-      setError(errorMessage);
-    } finally {
-      setLoaded(false);
-    }
+  return {
+    posts: query.data?.posts ?? [],
+    loaded: query.isLoading,
+    error:
+      query.data?.error ??
+      ((query.error as any)?.response?.data?.message ||
+        (query.error ? 'Ошибка получения постов' : null)),
+    fetchPosts: query.refetch,
+    refetch: query.refetch,
   };
-
-  return {posts, loaded, error, fetchPosts};
 };

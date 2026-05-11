@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
 	"net/http"
+	"papaya-backend/internal/realtime"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
 )
@@ -52,6 +53,16 @@ func CreateComment(c *gin.Context) {
 			"error": "Failed to create comment",
 		})
 		return
+	}
+
+	var post models.Post
+	if err := storage.DB.First(&post, "id = ?", body.PostId).Error; err == nil {
+		realtime.DefaultHub.Publish(post.ThreadId.String(), realtime.Event{
+			Type:      realtime.EventCommentCreated,
+			ThreadID:  post.ThreadId.String(),
+			PostID:    body.PostId.String(),
+			CommentID: commentId.String(),
+		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{

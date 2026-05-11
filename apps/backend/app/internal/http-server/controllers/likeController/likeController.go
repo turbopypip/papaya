@@ -10,6 +10,7 @@ import (
 type LikeController interface {
 	CreateLike(c *gin.Context)
 	GetLikes(c *gin.Context)
+	GetLikesBatch(c *gin.Context)
 	DeleteLike(c *gin.Context) // ⬅️ добавлено
 }
 
@@ -21,6 +22,10 @@ func (r Impl) CreateLike(c *gin.Context) {
 
 func (r Impl) GetLikes(c *gin.Context) {
 	getLikes.GetLikes(c)
+}
+
+func (r Impl) GetLikesBatch(c *gin.Context) {
+	getLikes.GetLikesBatch(c)
 }
 
 func (r Impl) DeleteLike(c *gin.Context) { // ⬅️ добавлено

@@ -3,6 +3,7 @@ package threadController
 import (
 	"github.com/gin-gonic/gin"
 	"papaya-backend/internal/http-server/controllers/threadController/createThread"
+	"papaya-backend/internal/http-server/controllers/threadController/getThread"
 	"papaya-backend/internal/http-server/controllers/threadController/getThreads"
 	"papaya-backend/internal/http-server/controllers/threadController/searchThreads"
 )
@@ -14,6 +15,9 @@ type ThreadController interface {
 
 	// GetThreads returns a list of threads. Requires page and limit as query params
 	GetThreads(c *gin.Context)
+
+	// GetThread returns one thread by id.
+	GetThread(c *gin.Context)
 
 	// SearchThreads returns a list of threads. Requires id or title or categories as query params
 	SearchThreads(c *gin.Context)
@@ -29,6 +33,11 @@ func (r Impl) CreateThread(c *gin.Context) {
 // GetThreads returns a list of threads. Requires page and limit as query params
 func (r Impl) GetThreads(c *gin.Context) {
 	getThreads.GetThreads(c)
+}
+
+// GetThread returns one thread by id.
+func (r Impl) GetThread(c *gin.Context) {
+	getThread.GetThread(c)
 }
 
 // SearchThreads returns a list of threads. Requires id or title or categories as query params

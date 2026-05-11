@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"papaya-backend/internal/cache"
+	"papaya-backend/internal/realtime"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
 	"time"
@@ -75,6 +76,12 @@ func CreatePost(c *gin.Context) {
 			c.Header("Cache-Warning", "Failed to cache new post")
 		}
 	}
+
+	realtime.DefaultHub.Publish(body.ThreadId.String(), realtime.Event{
+		Type:     realtime.EventPostCreated,
+		ThreadID: body.ThreadId.String(),
+		PostID:   postId.String(),
+	})
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "created post",

@@ -1,31 +1,31 @@
-import {useState} from 'react';
-import {postThread} from '@/entities/post/api/postPost';
+import {postPost} from '@/entities/post/api/postPost';
 import {CreatePostRequest} from '@/entities/post/types/postTypes';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-export const useCreatePost = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<boolean | null>(null);
+export const useCreatePost = (threadId?: string) => {
+  const queryClient = useQueryClient();
 
-  const createPost = async (Post: CreatePostRequest) => {
-    try {
-      setLoading(true);
-      setError(null);
-      setSuccess(null);
+  const mutation = useMutation({
+    mutationFn: (Post: CreatePostRequest) => postPost(Post),
+    onSuccess: (_data, variables) => {
+      const targetThreadId = threadId ?? variables.thread_id;
 
-      const response = await postThread(Post);
+      queryClient.invalidateQueries({
+        queryKey: ['posts', targetThreadId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['thread', targetThreadId],
+      });
+    },
+  });
 
-      if (response.error) {
-        setError(response.error);
-      } else {
-        setSuccess(true);
-      }
-    } catch (err) {
-      setError('Ошибка при отправке поста');
-    } finally {
-      setLoading(false);
-    }
+  return {
+    createPost: mutation.mutateAsync,
+    loading: mutation.isPending,
+    error:
+      mutation.data?.error ??
+      ((mutation.error as any)?.response?.data?.message ||
+        (mutation.error ? 'Ошибка при отправке поста' : null)),
+    success: mutation.isSuccess,
   };
-
-  return {createPost, loading, error, success};
 };

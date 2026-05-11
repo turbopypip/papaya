@@ -1,6 +1,5 @@
 'use client';
 import React, {useEffect, useState} from 'react';
-import {useThreadStore} from '@/entities/thread/stores/threadStore';
 import {
   Box,
   Container,
@@ -34,30 +33,54 @@ import {FaPlus} from 'react-icons/fa';
 import {useCreatePost} from '@/entities/post/queries/useCreatePost';
 import {CreatePostRequest} from '@/entities/post/types/postTypes';
 import Post from '@/app/thread/post/post';
+import {useGetThread} from '@/entities/thread/queries/useGetThread';
+import {useThreadEvents} from '@/entities/thread/queries/useThreadEvents';
 
 const ThreadPage = ({params}: {params: {id: string}}) => {
-  const thread = useThreadStore(state => state.threads).find(
-    thread => thread.ID === params.id,
-  );
+  useThreadEvents(params.id);
 
-  const {posts, loaded, error, fetchPosts} = useGetPosts(params.id);
+  const {
+    thread,
+    loaded: threadLoaded,
+    error: threadError,
+  } = useGetThread(params.id);
+  const {posts, loaded: postsLoaded, error: postsError} = useGetPosts(
+    params.id,
+  );
 
   const [postForm, setPostForm] = useState<CreatePostRequest>({
     content: '',
-    thread_id: thread ? thread.ID : '',
+    thread_id: params.id,
   });
+  const [postDrawerOpen, setPostDrawerOpen] = useState(false);
 
-  const {createPost, success} = useCreatePost();
+  const {createPost, loading: creatingPost, error: createPostError} =
+    useCreatePost(params.id);
 
   useEffect(() => {
-    fetchPosts(1, 100);
-  }, [success]);
+    setPostForm(prev => ({...prev, thread_id: params.id}));
+  }, [params.id]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const {name, value} = e.target;
     setPostForm(prev => ({...prev, [name]: value}));
   };
+
+  const handleCreatePost = async () => {
+    await createPost(postForm);
+    setPostForm({content: '', thread_id: params.id});
+    setPostDrawerOpen(false);
+  };
+
+  if (threadLoaded) {
+    return <Container>Loading...</Container>;
+  }
+
+  if (threadError) {
+    return <Container>{threadError}</Container>;
+  }
 
   if (thread == null) {
     return <>Not found this thread</>;
@@ -76,7 +99,10 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
           {thread.title}
         </BreadcrumbCurrentLink>
       </BreadcrumbRoot>
-      <DrawerRoot placement={'bottom'}>
+      <DrawerRoot
+        placement={'bottom'}
+        open={postDrawerOpen}
+        onOpenChange={details => setPostDrawerOpen(details.open)}>
         <DrawerBackdrop />
         <DrawerTrigger asChild>
           <Button variant="outline" size="sm" margin="1.5em 0 1.5em 0">
@@ -100,9 +126,11 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
             <DrawerActionTrigger asChild>
               <Button variant="outline">Cancel</Button>
             </DrawerActionTrigger>
-            <DrawerActionTrigger asChild>
-              <Button onClick={() => createPost(postForm)}>Publish</Button>
-            </DrawerActionTrigger>
+            <Button
+              disabled={creatingPost}
+              onClick={handleCreatePost}>
+              {creatingPost ? 'Publishing...' : 'Publish'}
+            </Button>
           </DrawerFooter>
           <DrawerCloseTrigger />
         </DrawerContent>
@@ -126,7 +154,14 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
           </Card.Description>
         </Card.Body>
       </Card.Root>
-      {posts.length > 0 ? (
+      {createPostError ? (
+        <Box color="red.500">{createPostError}</Box>
+      ) : null}
+      {postsLoaded ? (
+        <Box>Loading posts...</Box>
+      ) : postsError ? (
+        <Box color="red.500">{postsError}</Box>
+      ) : posts.length > 0 ? (
         <Box marginBottom="2rem">
           <Separator margin="2em 0 2em 0" />
           {posts.map(post => (

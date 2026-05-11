@@ -10,9 +10,8 @@ type Props = {
   threads: Thread[];
   loaded: boolean;
   error: string | null;
-  setThreads: (threads: Thread[]) => void;
 };
-const ThreadsTable: FC<Props> = ({threads, loaded, error, setThreads}) => {
+const ThreadsTable: FC<Props> = ({threads, loaded, error}) => {
   const router = useRouter();
   if (loaded) {
     return <p>Loading...</p>;
@@ -23,7 +22,6 @@ const ThreadsTable: FC<Props> = ({threads, loaded, error, setThreads}) => {
   }
   const handleClick = (threadId: string) => {
     router.push(`/thread/${threadId}`);
-    setThreads(threads);
   };
 
   if (threads.length == 0) {
