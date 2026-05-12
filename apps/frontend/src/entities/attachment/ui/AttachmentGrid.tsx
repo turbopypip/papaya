@@ -137,8 +137,10 @@ export const AttachmentTile = ({
 
 export const AttachmentGrid = ({
   attachments,
+  onRemove,
 }: {
   attachments?: Attachment[];
+  onRemove?: (attachment: Attachment) => void;
 }) => {
   if (!attachments?.length) {
     return null;
@@ -152,6 +154,7 @@ export const AttachmentGrid = ({
           fileName={attachment.file_name}
           fileSize={attachment.size}
           key={attachment.ID}
+          onRemove={onRemove ? () => onRemove(attachment) : undefined}
           url={attachment.url}
         />
       ))}

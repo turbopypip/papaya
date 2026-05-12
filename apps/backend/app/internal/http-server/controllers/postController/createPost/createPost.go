@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/cache"
+	"papaya-backend/internal/forumvalidation"
 	"papaya-backend/internal/realtime"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
@@ -37,8 +38,8 @@ func CreatePost(c *gin.Context) {
 		})
 		return
 	}
-	if strings.TrimSpace(body.Content) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Post content is required"})
+	if err := forumvalidation.ValidatePostContent(body.Content); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

@@ -20,13 +20,22 @@ func GetThread(c *gin.Context) {
 	}
 
 	var thread models.Thread
-	err = storage.DB.First(&thread, "id = ?", threadID).Error
+	err = storage.DB.Unscoped().First(&thread, "id = ?", threadID).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Thread not found"})
 		return
 	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve thread"})
+		return
+	}
+	if thread.DeletedAt.Valid {
+		c.JSON(http.StatusOK, gin.H{
+			"deleted_thread": gin.H{
+				"ID":         thread.Id,
+				"deleted_at": thread.DeletedAt.Time,
+			},
+		})
 		return
 	}
 	if err := attachments.AttachToThread(storage.DB, &thread); err != nil {

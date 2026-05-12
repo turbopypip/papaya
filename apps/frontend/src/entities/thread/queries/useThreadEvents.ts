@@ -30,7 +30,7 @@ export const useThreadEvents = (threadId: string) => {
       withCredentials: true,
     });
 
-    const onPostCreated = () => {
+    const onPostChanged = () => {
       queryClient.invalidateQueries({queryKey: ['posts', threadId]});
       queryClient.invalidateQueries({queryKey: ['thread', threadId]});
     };
@@ -61,12 +61,16 @@ export const useThreadEvents = (threadId: string) => {
       );
     };
 
-    eventSource.addEventListener('post.created', onPostCreated);
+    eventSource.addEventListener('post.created', onPostChanged);
+    eventSource.addEventListener('post.updated', onPostChanged);
+    eventSource.addEventListener('post.deleted', onPostChanged);
     eventSource.addEventListener('comment.created', onCommentCreated);
     eventSource.addEventListener('like.created', onLikeChanged);
     eventSource.addEventListener('like.deleted', onLikeChanged);
     return () => {
-      eventSource.removeEventListener('post.created', onPostCreated);
+      eventSource.removeEventListener('post.created', onPostChanged);
+      eventSource.removeEventListener('post.updated', onPostChanged);
+      eventSource.removeEventListener('post.deleted', onPostChanged);
       eventSource.removeEventListener('comment.created', onCommentCreated);
       eventSource.removeEventListener('like.created', onLikeChanged);
       eventSource.removeEventListener('like.deleted', onLikeChanged);

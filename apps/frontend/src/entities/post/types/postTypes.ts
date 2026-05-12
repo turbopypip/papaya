@@ -3,8 +3,10 @@ import {Attachment} from '@/entities/attachment';
 export interface Post {
   ID: string;
   content: string;
+  user_id: string;
   thread_id: string;
   CreatedAt: string;
+  UpdatedAt: string;
   attachments?: Attachment[];
 }
 
@@ -22,4 +24,21 @@ export interface CreatePostRequest {
 export interface CreatePostResponse {
   error?: string;
   post?: Post;
+}
+
+export interface UpdatePostRequest {
+  id: string;
+  content: string;
+  keep_attachment_ids?: string[];
+  attachments?: File[];
+}
+
+export interface UpdatePostResponse {
+  error?: string;
+  post?: Post;
+}
+
+export interface DeletePostResponse {
+  error?: string;
+  post_id?: string;
 }

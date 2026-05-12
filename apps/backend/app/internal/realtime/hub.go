@@ -4,9 +4,12 @@ import "sync"
 
 const (
 	EventPostCreated    = "post.created"
+	EventPostUpdated    = "post.updated"
+	EventPostDeleted    = "post.deleted"
 	EventCommentCreated = "comment.created"
 	EventLikeCreated    = "like.created"
 	EventLikeDeleted    = "like.deleted"
+	EventThreadDeleted  = "thread.deleted"
 )
 
 type Event struct {

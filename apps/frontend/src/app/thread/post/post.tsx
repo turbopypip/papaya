@@ -1,18 +1,21 @@
 'use client';
 
-import React, {FC, useState} from 'react';
+import React, {FC, useEffect, useState} from 'react';
 import {
   Box,
   Button,
   Card,
   Collapsible,
   Flex,
+  IconButton,
+  Menu,
   Separator,
   Text,
   Textarea,
 } from '@chakra-ui/react';
 import DOMPurify from 'dompurify';
 import {FaPlus} from 'react-icons/fa';
+import {EllipsisVertical, Pencil, Trash2} from 'lucide-react';
 import getFormattedDate from '@/shared/utils/getFormattedDate';
 import {
   TimelineConnector,
@@ -38,7 +41,9 @@ import {
   DrawerTrigger,
 } from '@/shared/Components/Drawer/ui/drawer';
 import {LikableType, useLike} from '@/entities/like';
-import {AttachmentGrid, AttachmentPicker} from '@/entities/attachment';
+import {Attachment, AttachmentGrid, AttachmentPicker} from '@/entities/attachment';
+import {useUpdatePost} from '@/entities/post/queries/useUpdatePost';
+import {useDeletePost} from '@/entities/post/queries/useDeletePost';
 
 type Props = {
   post: PostType;
@@ -85,6 +90,13 @@ const Post: FC<Props> = ({post}) => {
   const [commentFiles, setCommentFiles] = useState<File[]>([]);
   const [opened, setOpened] = useState<boolean>(false);
   const [commentDrawerOpen, setCommentDrawerOpen] = useState(false);
+  const [editDrawerOpen, setEditDrawerOpen] = useState(false);
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
+  const [keptAttachments, setKeptAttachments] = useState<Attachment[]>(
+    post.attachments ?? [],
+  );
+  const [editFiles, setEditFiles] = useState<File[]>([]);
 
   const {
     createComment,
@@ -93,6 +105,29 @@ const Post: FC<Props> = ({post}) => {
   } = useCreateComment();
   const {comments, loaded: commentsLoaded, error: commentsError} =
     useGetCommentsWithPostId(post.ID);
+  const {
+    updatePost,
+    loading: updatingPost,
+    error: updatePostError,
+  } = useUpdatePost(post.thread_id);
+  const {
+    deletePost,
+    loading: deletingPost,
+    error: deletePostError,
+  } = useDeletePost(post.thread_id);
+
+  const isEdited =
+    post.UpdatedAt &&
+    new Date(post.UpdatedAt).getTime() - new Date(post.CreatedAt).getTime() >
+      1000;
+
+  useEffect(() => {
+    if (!editDrawerOpen) {
+      setEditContent(post.content);
+      setKeptAttachments(post.attachments ?? []);
+      setEditFiles([]);
+    }
+  }, [editDrawerOpen, post.attachments, post.content]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -108,21 +143,148 @@ const Post: FC<Props> = ({post}) => {
     setCommentDrawerOpen(false);
   };
 
+  const openEditDrawer = () => {
+    setEditContent(post.content);
+    setKeptAttachments(post.attachments ?? []);
+    setEditFiles([]);
+    setEditDrawerOpen(true);
+    setActionMenuOpen(false);
+  };
+
+  const handleUpdatePost = async () => {
+    await updatePost({
+      id: post.ID,
+      content: editContent,
+      keep_attachment_ids: keptAttachments.map(attachment => attachment.ID),
+      attachments: editFiles,
+    });
+    setEditDrawerOpen(false);
+  };
+
+  const handleDeletePost = async () => {
+    setActionMenuOpen(false);
+    if (!window.confirm('Удалить этот пост вместе с комментариями?')) {
+      return;
+    }
+
+    await deletePost(post.ID);
+  };
+
   return (
     <Card.Root marginTop="2em" key={post.ID}>
       <Card.Body gap="2" fontFamily="Roboto, Arial, sans-serif">
-        <Card.Description
-          fontFamily="Roboto, Arial, sans-serif"
-          mt="2"
-          dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(post.content)}}
-        />
+        <Flex align="flex-start" gap="3" justify="space-between">
+          <Card.Description
+            flex="1"
+            fontFamily="Roboto, Arial, sans-serif"
+            mt="2"
+            dangerouslySetInnerHTML={{
+              __html: DOMPurify.sanitize(post.content),
+            }}
+          />
+          <Menu.Root
+            open={actionMenuOpen}
+            onOpenChange={details => setActionMenuOpen(details.open)}>
+            <Menu.Trigger asChild>
+              <IconButton
+                aria-label="Post actions"
+                onClick={() => setActionMenuOpen(open => !open)}
+                onMouseEnter={() => setActionMenuOpen(true)}
+                size="sm"
+                variant="ghost">
+                <EllipsisVertical size={18} />
+              </IconButton>
+            </Menu.Trigger>
+            <Menu.Positioner onMouseLeave={() => setActionMenuOpen(false)}>
+              <Menu.Content>
+                <Menu.Item onClick={openEditDrawer} value="edit">
+                  <Pencil size={16} />
+                  Редактировать
+                </Menu.Item>
+                <Menu.Item
+                  color="red.600"
+                  disabled={deletingPost}
+                  onClick={handleDeletePost}
+                  value="delete">
+                  <Trash2 size={16} />
+                  Удалить
+                </Menu.Item>
+              </Menu.Content>
+            </Menu.Positioner>
+          </Menu.Root>
+        </Flex>
 
-        <Card.Description mt="2" fontFamily="Roboto, Arial, sans-serif">
-          {getFormattedDate(post.CreatedAt)}
+        <Card.Description
+          alignItems="center"
+          display="flex"
+          gap="3"
+          mt="2"
+          fontFamily="Roboto, Arial, sans-serif">
+          <span>{getFormattedDate(post.CreatedAt)}</span>
+          {isEdited ? (
+            <Flex align="center" as="span" gap="1">
+              <Pencil size={14} />
+              {getFormattedDate(post.UpdatedAt)}
+            </Flex>
+          ) : null}
         </Card.Description>
+
+        <DrawerRoot
+          placement={'bottom'}
+          open={editDrawerOpen}
+          onOpenChange={details => setEditDrawerOpen(details.open)}>
+          <DrawerBackdrop />
+          <DrawerContent roundedTop={'l3'}>
+            <DrawerHeader>
+              <DrawerTitle>Редактировать пост</DrawerTitle>
+            </DrawerHeader>
+            <DrawerBody>
+              <Textarea
+                minH="180px"
+                placeholder="Текст поста"
+                value={editContent}
+                onChange={event => setEditContent(event.target.value)}
+              />
+              <Box marginTop="1rem">
+                <AttachmentGrid
+                  attachments={keptAttachments}
+                  onRemove={attachment =>
+                    setKeptAttachments(current =>
+                      current.filter(item => item.ID !== attachment.ID),
+                    )
+                  }
+                />
+              </Box>
+              <AttachmentPicker
+                files={editFiles}
+                inputId={`post-edit-attachments-${post.ID}`}
+                onChange={setEditFiles}
+              />
+              {updatePostError ? (
+                <Box color="red.500" marginTop="0.75rem">
+                  {updatePostError}
+                </Box>
+              ) : null}
+            </DrawerBody>
+            <DrawerFooter>
+              <DrawerActionTrigger asChild>
+                <Button variant="outline">Отмена</Button>
+              </DrawerActionTrigger>
+              <Button disabled={updatingPost} onClick={handleUpdatePost}>
+                {updatingPost ? 'Сохраняем...' : 'Сохранить'}
+              </Button>
+            </DrawerFooter>
+            <DrawerCloseTrigger />
+          </DrawerContent>
+        </DrawerRoot>
 
         <LikeControl likableType="post" likableId={post.ID} />
         <AttachmentGrid attachments={post.attachments} />
+        {deletePostError ? (
+          <Box color="red.500" marginTop="0.75rem">
+            {deletePostError}
+          </Box>
+        ) : null}
 
         <Card.Footer padding="0">
           <Collapsible.Root
