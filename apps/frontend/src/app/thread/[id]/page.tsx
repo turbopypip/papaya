@@ -42,6 +42,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
 
   const {
     thread,
+    deletedThread,
     loaded: threadLoaded,
     error: threadError,
   } = useGetThread(params.id);
@@ -83,6 +84,21 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
 
   if (threadError) {
     return <Container>{threadError}</Container>;
+  }
+
+  if (deletedThread) {
+    return (
+      <Container>
+        <Card.Root marginTop="2rem">
+          <Card.Body gap="2" fontFamily="Roboto, Arial, sans-serif">
+            <Card.Title>Тред удален</Card.Title>
+            <Card.Description>
+              Этот тред был удален {getFormattedDate(deletedThread.deleted_at)}.
+            </Card.Description>
+          </Card.Body>
+        </Card.Root>
+      </Container>
+    );
   }
 
   if (thread == null) {

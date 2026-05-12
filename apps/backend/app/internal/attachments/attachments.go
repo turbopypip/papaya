@@ -166,6 +166,57 @@ func CleanupFiles(paths []string) {
 	}
 }
 
+func DeleteRemovedForOwner(tx *gorm.DB, ownerType string, ownerID uuid.UUID, keepIDs []uuid.UUID) ([]string, error) {
+	var current []models.Attachment
+	if err := tx.
+		Where("owner_type = ? AND owner_id = ?", ownerType, ownerID).
+		Find(&current).Error; err != nil {
+		return nil, err
+	}
+
+	keep := make(map[uuid.UUID]struct{}, len(keepIDs))
+	for _, id := range keepIDs {
+		keep[id] = struct{}{}
+	}
+
+	removedPaths := make([]string, 0)
+	for _, attachment := range current {
+		if _, ok := keep[attachment.Id]; ok {
+			continue
+		}
+
+		if err := tx.Delete(&attachment).Error; err != nil {
+			return nil, err
+		}
+		removedPaths = append(removedPaths, filepath.Join(UploadDir(), attachment.StorageKey))
+	}
+
+	return removedPaths, nil
+}
+
+func DeleteForOwners(tx *gorm.DB, ownerType string, ownerIDs []uuid.UUID) ([]string, error) {
+	if len(ownerIDs) == 0 {
+		return nil, nil
+	}
+
+	var current []models.Attachment
+	if err := tx.
+		Where("owner_type = ? AND owner_id IN ?", ownerType, ownerIDs).
+		Find(&current).Error; err != nil {
+		return nil, err
+	}
+
+	removedPaths := make([]string, 0, len(current))
+	for _, attachment := range current {
+		if err := tx.Delete(&attachment).Error; err != nil {
+			return nil, err
+		}
+		removedPaths = append(removedPaths, filepath.Join(UploadDir(), attachment.StorageKey))
+	}
+
+	return removedPaths, nil
+}
+
 func AttachToThread(db *gorm.DB, thread *models.Thread) error {
 	attachmentsByOwner, err := MapByOwner(db, OwnerTypeThread, []uuid.UUID{thread.Id})
 	if err != nil {
@@ -191,6 +242,16 @@ func AttachToThreads(db *gorm.DB, threads []models.Thread) error {
 		threads[i].Attachments = attachmentsByOwner[threads[i].Id]
 	}
 
+	return nil
+}
+
+func AttachToPost(db *gorm.DB, post *models.Post) error {
+	attachmentsByOwner, err := MapByOwner(db, OwnerTypePost, []uuid.UUID{post.Id})
+	if err != nil {
+		return err
+	}
+
+	post.Attachments = attachmentsByOwner[post.Id]
 	return nil
 }
 

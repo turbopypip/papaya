@@ -10,6 +10,7 @@ export const useGetThread = (threadId: string) => {
 
   return {
     thread: query.data?.thread ?? null,
+    deletedThread: query.data?.deleted_thread ?? null,
     loaded: query.isLoading,
     error:
       query.data?.error ??

@@ -5,7 +5,13 @@ export interface Thread {
   title: string;
   categories?: string[] | null;
   CreatedAt: string;
+  user_id: string;
   attachments?: Attachment[];
+}
+
+export interface DeletedThread {
+  ID: string;
+  deleted_at: string;
 }
 
 export interface GetThreadsResponse {
@@ -15,7 +21,8 @@ export interface GetThreadsResponse {
 
 export interface GetThreadResponse {
   error?: string;
-  thread: Thread;
+  thread?: Thread;
+  deleted_thread?: DeletedThread;
 }
 
 export interface CreateThreadRequest {
