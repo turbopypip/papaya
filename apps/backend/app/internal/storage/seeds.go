@@ -2,16 +2,25 @@ package storage
 
 import (
 	"errors"
+	"papaya-backend/internal/config"
 	"papaya-backend/internal/storage/models"
 
 	"github.com/gofrs/uuid"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 var (
 	DefaultUserRoleID  = mustRoleID("1ef94a6d-ed65-6cd0-bfb7-718b8878121a")
 	DefaultAdminRoleID = mustRoleID("1ef94a6d-ed65-6d36-bfb7-718b8878121b")
+	DefaultDevUserID   = mustRoleID("1ef94a6d-ed65-6e14-bfb7-718b8878121c")
+)
+
+const (
+	DevUserUsername = "dev-user"
+	DevUserEmail    = "dev@papaya.local"
+	DevUserPassword = "papaya-dev-password"
 )
 
 func mustRoleID(value string) uuid.UUID {
@@ -57,6 +66,47 @@ func SeedRoles() {
 	}
 
 	logrus.Info("Default roles seeded successfully")
+}
+
+func SeedDevUser() {
+	if !config.IsDev() {
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(DevUserPassword), 10)
+	if err != nil {
+		logrus.Fatalf("Failed to generate dev user password hash: %v", err)
+	}
+
+	seededUser := models.User{
+		Id:           DefaultDevUserID,
+		Username:     DevUserUsername,
+		Email:        DevUserEmail,
+		PasswordHash: string(hash),
+		RoleId:       DefaultUserRoleID,
+	}
+
+	var user models.User
+	err = DB.Where("email = ?", DevUserEmail).First(&user).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		if err := DB.Create(&seededUser).Error; err != nil {
+			logrus.Fatalf("Failed to seed dev user: %v", err)
+		}
+		logrus.Info("Dev user seeded successfully")
+		return
+	}
+	if err != nil {
+		logrus.Fatalf("Failed to query dev user: %v", err)
+	}
+
+	user.Username = DevUserUsername
+	user.PasswordHash = string(hash)
+	user.RoleId = DefaultUserRoleID
+	if err := DB.Save(&user).Error; err != nil {
+		logrus.Fatalf("Failed to update dev user: %v", err)
+	}
+
+	logrus.Info("Dev user seeded successfully")
 }
 
 func userPermissions() models.Permissions {

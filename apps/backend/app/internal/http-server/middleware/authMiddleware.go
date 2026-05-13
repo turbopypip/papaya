@@ -6,14 +6,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"os"
+	serverAuth "papaya-backend/internal/http-server/auth"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
 	"time"
 )
 
 func abortUnauthorized(c *gin.Context) {
-	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("Authorization", "", -1, "/", "", false, true)
+	serverAuth.ClearAuthCookie(c)
 	c.AbortWithStatus(http.StatusUnauthorized)
 }
 

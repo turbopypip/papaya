@@ -1,5 +1,6 @@
 import {useState, useEffect} from 'react';
 import {validateAuth} from '../api/validate';
+import {AUTH_CHANGED_EVENT} from '@/entities/user/lib/authEvents';
 
 export const useValidate = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -16,6 +17,11 @@ export const useValidate = () => {
     };
 
     checkAuth();
+    window.addEventListener(AUTH_CHANGED_EVENT, checkAuth);
+
+    return () => {
+      window.removeEventListener(AUTH_CHANGED_EVENT, checkAuth);
+    };
   }, []);
 
   return isAuthenticated;

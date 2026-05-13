@@ -99,4 +99,5 @@ func InitStorage() {
 	}
 
 	SeedRoles()
+	SeedDevUser()
 }
