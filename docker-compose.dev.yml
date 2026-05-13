@@ -3,6 +3,10 @@ services:
     volumes:
       - ./apps/backend/app/config:/config:ro
       - ./apps/backend/uploads:/uploads
+    environment:
+      APP_ENV: dev
+      ENV: dev
+      LOCAL_CONFIG_PATH: /config/dev.yaml
 
   frontend:
     build:
@@ -16,3 +20,4 @@ services:
       NODE_ENV: development
       SERVER_API_URL: ${SERVER_API_URL:-http://backend:8888}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+      NEXT_PUBLIC_APP_MODE: dev

@@ -2,13 +2,11 @@ package logIn
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
-	"os"
+	serverAuth "papaya-backend/internal/http-server/auth"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
-	"time"
 )
 
 func LogIn(c *gin.Context) {
@@ -46,14 +44,7 @@ func LogIn(c *gin.Context) {
 		return
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": user.Id,
-		"exp": time.Now().Add(time.Hour * 24 * 30).Unix(),
-	})
-
-	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString([]byte(os.Getenv("SECRET")))
-	if err != nil {
+	if err := serverAuth.SetAuthCookie(c, user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"description": "Failed to create a token",
 			"error":       err.Error(),
@@ -61,15 +52,6 @@ func LogIn(c *gin.Context) {
 
 		return
 	}
-
-	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("Authorization",
-		tokenString,
-		3600*24*30,
-		"",
-		"",
-		false,
-		true)
 
 	c.JSON(http.StatusOK, gin.H{})
 }

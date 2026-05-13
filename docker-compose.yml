@@ -5,6 +5,10 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
+    environment:
+      APP_ENV: prod
+      ENV: prod
+      LOCAL_CONFIG_PATH: /config/prod.yaml
     volumes:
       - ./apps/backend/app/config:/config:ro
       - ./apps/backend/uploads:/uploads
@@ -29,9 +33,11 @@ services:
       args:
         SERVER_API_URL: ${SERVER_API_URL:-http://backend:8888}
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8888}
+        NEXT_PUBLIC_APP_MODE: prod
     environment:
       SERVER_API_URL: ${SERVER_API_URL:-http://backend:8888}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8888}
+      NEXT_PUBLIC_APP_MODE: prod
     ports:
       - "3000:3000"
     depends_on:
