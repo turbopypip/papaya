@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 	"net/http"
 	"papaya-backend/internal/attachments"
+	"papaya-backend/internal/forumvalidation"
 	"papaya-backend/internal/realtime"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
@@ -33,8 +34,8 @@ func CreateComment(c *gin.Context) {
 		})
 		return
 	}
-	if strings.TrimSpace(body.Content) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Comment content is required"})
+	if err := forumvalidation.ValidateCommentContent(body.Content); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

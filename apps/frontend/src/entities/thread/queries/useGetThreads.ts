@@ -1,12 +1,13 @@
 import {getThreads} from '@/entities/thread/api/getThreads';
 import {useQuery} from '@tanstack/react-query';
 
-export const useGetThreads = (page = 1, limit = 100) => {
+export const useGetThreads = (page = 1, limit = 100, enabled = true) => {
   const query = useQuery({
     queryKey: ['threads', page, limit],
     queryFn: () => getThreads(page, limit),
-    refetchInterval: 3000,
-    refetchIntervalInBackground: true,
+    enabled,
+    refetchInterval: enabled ? 3000 : false,
+    refetchIntervalInBackground: enabled,
   });
 
   return {

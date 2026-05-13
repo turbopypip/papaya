@@ -36,18 +36,23 @@ import Post from '@/app/thread/post/post';
 import {useGetThread} from '@/entities/thread/queries/useGetThread';
 import {useThreadEvents} from '@/entities/thread/queries/useThreadEvents';
 import {AttachmentGrid, AttachmentPicker} from '@/entities/attachment';
+import {useValidate} from '@/entities/user/queries/useValidate';
 
 const ThreadPage = ({params}: {params: {id: string}}) => {
-  useThreadEvents(params.id);
+  const isAuthenticated = useValidate();
+  const canFetchThread = isAuthenticated === true;
+
+  useThreadEvents(params.id, canFetchThread);
 
   const {
     thread,
     deletedThread,
     loaded: threadLoaded,
     error: threadError,
-  } = useGetThread(params.id);
+  } = useGetThread(params.id, canFetchThread);
   const {posts, loaded: postsLoaded, error: postsError} = useGetPosts(
     params.id,
+    canFetchThread,
   );
 
   const [postForm, setPostForm] = useState<CreatePostRequest>({
@@ -77,6 +82,14 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
     setPostFiles([]);
     setPostDrawerOpen(false);
   };
+
+  if (isAuthenticated === null) {
+    return <Container>Loading...</Container>;
+  }
+
+  if (!isAuthenticated) {
+    return <Container>You&#39;re not logged in</Container>;
+  }
 
   if (threadLoaded) {
     return <Container>Loading...</Container>;

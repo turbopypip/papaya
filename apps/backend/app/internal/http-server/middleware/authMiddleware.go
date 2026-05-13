@@ -11,11 +11,17 @@ import (
 	"time"
 )
 
+func abortUnauthorized(c *gin.Context) {
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("Authorization", "", -1, "/", "", false, true)
+	c.AbortWithStatus(http.StatusUnauthorized)
+}
+
 func Auth(c *gin.Context) {
 	// Get the token
 	tokenString, err := c.Cookie("Authorization")
 	if err != nil {
-		c.AbortWithStatus(http.StatusUnauthorized)
+		abortUnauthorized(c)
 		return
 	}
 
@@ -28,7 +34,7 @@ func Auth(c *gin.Context) {
 		return []byte(os.Getenv("SECRET")), nil
 	})
 	if err != nil {
-		c.AbortWithStatus(http.StatusUnauthorized)
+		abortUnauthorized(c)
 		return
 	}
 
@@ -36,7 +42,7 @@ func Auth(c *gin.Context) {
 		// Check the exp
 		expiresAt, ok := claims["exp"].(float64)
 		if !ok || float64(time.Now().Unix()) > expiresAt {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			abortUnauthorized(c)
 			return
 		}
 
@@ -44,13 +50,13 @@ func Auth(c *gin.Context) {
 		var user models.User
 		sub, ok := claims["sub"].(string)
 		if !ok {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			abortUnauthorized(c)
 			return
 		}
 
-		storage.DB.First(&user, "id = ?", sub)
-		if user.Username == "" {
-			c.AbortWithStatus(http.StatusUnauthorized)
+		result := storage.DB.Where("id = ?", sub).Limit(1).Find(&user)
+		if result.Error != nil || result.RowsAffected == 0 {
+			abortUnauthorized(c)
 			return
 		}
 
@@ -60,7 +66,7 @@ func Auth(c *gin.Context) {
 		// Continue
 		c.Next()
 	} else {
-		c.AbortWithStatus(http.StatusUnauthorized)
+		abortUnauthorized(c)
 		return
 	}
 }

@@ -34,6 +34,7 @@ import {useGetThreads} from '@/entities/thread/queries/useGetThreads';
 
 const NavigationTabs = () => {
   const isAuthenticated = useValidate();
+  const canFetchThreads = isAuthenticated === true;
   const [threadForm, setThreadForm] = useState<CreateThreadRequest>({
     title: '',
     categories: [],
@@ -41,7 +42,7 @@ const NavigationTabs = () => {
   const [threadFiles, setThreadFiles] = useState<File[]>([]);
   const [threadDrawerOpen, setThreadDrawerOpen] = useState(false);
 
-  const {threads, loaded, error} = useGetThreads(1, 100);
+  const {threads, loaded, error} = useGetThreads(1, 100, canFetchThreads);
   const {
     createThread,
     loading: creatingThread,
@@ -95,7 +96,9 @@ const NavigationTabs = () => {
       </Tabs.List>
 
       <Tabs.Content value="threads">
-        {isAuthenticated ? (
+        {isAuthenticated === null ? (
+          <Text>Loading...</Text>
+        ) : isAuthenticated ? (
           <Box>
             <DrawerRoot
               placement={'bottom'}

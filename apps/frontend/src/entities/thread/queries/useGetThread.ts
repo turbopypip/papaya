@@ -1,11 +1,11 @@
 import {getThread} from '@/entities/thread/api/getThread';
 import {useQuery} from '@tanstack/react-query';
 
-export const useGetThread = (threadId: string) => {
+export const useGetThread = (threadId: string, enabled = true) => {
   const query = useQuery({
     queryKey: ['thread', threadId],
     queryFn: () => getThread(threadId),
-    enabled: Boolean(threadId),
+    enabled: enabled && Boolean(threadId),
   });
 
   return {

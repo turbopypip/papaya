@@ -32,7 +32,7 @@ func InitStorage() {
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: false,
 		},
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Warn),
 	})
 	if err != nil {
 		logrus.Fatalf("Failed to connect to database: %v", err)

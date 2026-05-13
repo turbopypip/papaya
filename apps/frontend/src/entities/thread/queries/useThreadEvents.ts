@@ -18,11 +18,11 @@ const eventsUrl = (threadId: string) => {
   return `${baseUrl}/events/thread/${threadId}`;
 };
 
-export const useThreadEvents = (threadId: string) => {
+export const useThreadEvents = (threadId: string, enabled = true) => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!threadId || typeof window === 'undefined') {
+    if (!enabled || !threadId || typeof window === 'undefined') {
       return;
     }
 
@@ -35,7 +35,7 @@ export const useThreadEvents = (threadId: string) => {
       queryClient.invalidateQueries({queryKey: ['thread', threadId]});
     };
 
-    const onCommentCreated = (event: MessageEvent) => {
+    const onCommentChanged = (event: MessageEvent) => {
       const payload = parseEvent(event);
       if (payload?.post_id) {
         queryClient.invalidateQueries({
@@ -64,19 +64,23 @@ export const useThreadEvents = (threadId: string) => {
     eventSource.addEventListener('post.created', onPostChanged);
     eventSource.addEventListener('post.updated', onPostChanged);
     eventSource.addEventListener('post.deleted', onPostChanged);
-    eventSource.addEventListener('comment.created', onCommentCreated);
+    eventSource.addEventListener('comment.created', onCommentChanged);
+    eventSource.addEventListener('comment.updated', onCommentChanged);
+    eventSource.addEventListener('comment.deleted', onCommentChanged);
     eventSource.addEventListener('like.created', onLikeChanged);
     eventSource.addEventListener('like.deleted', onLikeChanged);
     return () => {
       eventSource.removeEventListener('post.created', onPostChanged);
       eventSource.removeEventListener('post.updated', onPostChanged);
       eventSource.removeEventListener('post.deleted', onPostChanged);
-      eventSource.removeEventListener('comment.created', onCommentCreated);
+      eventSource.removeEventListener('comment.created', onCommentChanged);
+      eventSource.removeEventListener('comment.updated', onCommentChanged);
+      eventSource.removeEventListener('comment.deleted', onCommentChanged);
       eventSource.removeEventListener('like.created', onLikeChanged);
       eventSource.removeEventListener('like.deleted', onLikeChanged);
       eventSource.close();
     };
-  }, [queryClient, threadId]);
+  }, [enabled, queryClient, threadId]);
 };
 
 const parseEvent = (event: MessageEvent): ThreadEvent | null => {

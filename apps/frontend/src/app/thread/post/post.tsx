@@ -26,7 +26,10 @@ import {
 } from '@/shared/Components/Timeline/ui/timeline';
 import {Post as PostType} from '@/entities/post/types/postTypes';
 import {useGetCommentsWithPostId} from '@/entities/comment/queries/useGetCommentsWithPostId';
-import {CreateCommentRequest} from '@/entities/comment/types/commentTypes';
+import {
+  Comment as CommentType,
+  CreateCommentRequest,
+} from '@/entities/comment/types/commentTypes';
 import {useCreateComment} from '@/entities/comment/queries/useCreateComment';
 import {
   DrawerActionTrigger,
@@ -44,6 +47,8 @@ import {LikableType, useLike} from '@/entities/like';
 import {Attachment, AttachmentGrid, AttachmentPicker} from '@/entities/attachment';
 import {useUpdatePost} from '@/entities/post/queries/useUpdatePost';
 import {useDeletePost} from '@/entities/post/queries/useDeletePost';
+import {useUpdateComment} from '@/entities/comment/queries/useUpdateComment';
+import {useDeleteComment} from '@/entities/comment/queries/useDeleteComment';
 
 type Props = {
   post: PostType;
@@ -79,6 +84,186 @@ const LikeControl = ({
         {count}
       </Box>
     </Flex>
+  );
+};
+
+const CommentItem = ({comment}: {comment: CommentType}) => {
+  const [editDrawerOpen, setEditDrawerOpen] = useState(false);
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
+  const [keptAttachments, setKeptAttachments] = useState<Attachment[]>(
+    comment.attachments ?? [],
+  );
+  const [editFiles, setEditFiles] = useState<File[]>([]);
+  const {
+    updateComment,
+    loading: updatingComment,
+    error: updateCommentError,
+  } = useUpdateComment(comment.post_id);
+  const {
+    deleteComment,
+    loading: deletingComment,
+    error: deleteCommentError,
+  } = useDeleteComment(comment.post_id);
+
+  const isEdited =
+    comment.UpdatedAt &&
+    new Date(comment.UpdatedAt).getTime() -
+      new Date(comment.CreatedAt).getTime() >
+      1000;
+
+  useEffect(() => {
+    if (!editDrawerOpen) {
+      setEditContent(comment.content);
+      setKeptAttachments(comment.attachments ?? []);
+      setEditFiles([]);
+    }
+  }, [comment.attachments, comment.content, editDrawerOpen]);
+
+  const openEditDrawer = () => {
+    setEditContent(comment.content);
+    setKeptAttachments(comment.attachments ?? []);
+    setEditFiles([]);
+    setEditDrawerOpen(true);
+    setActionMenuOpen(false);
+  };
+
+  const handleUpdateComment = async () => {
+    await updateComment({
+      id: comment.ID,
+      content: editContent,
+      post_id: comment.post_id,
+      keep_attachment_ids: keptAttachments.map(attachment => attachment.ID),
+      attachments: editFiles,
+    });
+    setEditDrawerOpen(false);
+  };
+
+  const handleDeleteComment = async () => {
+    setActionMenuOpen(false);
+    if (!window.confirm('Удалить этот комментарий?')) {
+      return;
+    }
+
+    await deleteComment(comment.ID);
+  };
+
+  return (
+    <TimelineItem>
+      <TimelineConnector />
+      <TimelineContent>
+        <Flex align="flex-start" gap="3" justify="space-between">
+          <TimelineDescription fontFamily="Roboto, Arial, sans-serif">
+            {isEdited ? (
+              <Flex align="center" as="span" gap="1">
+                <Pencil size={14} />
+                {getFormattedDate(comment.UpdatedAt)}
+              </Flex>
+            ) : (
+              getFormattedDate(comment.CreatedAt)
+            )}
+          </TimelineDescription>
+          <Menu.Root
+            open={actionMenuOpen}
+            onOpenChange={details => setActionMenuOpen(details.open)}>
+            <Menu.Trigger asChild>
+              <IconButton
+                aria-label="Comment actions"
+                onClick={() => setActionMenuOpen(open => !open)}
+                onMouseEnter={() => setActionMenuOpen(true)}
+                size="xs"
+                variant="ghost">
+                <EllipsisVertical size={16} />
+              </IconButton>
+            </Menu.Trigger>
+            <Menu.Positioner onMouseLeave={() => setActionMenuOpen(false)}>
+              <Menu.Content>
+                <Menu.Item onClick={openEditDrawer} value="edit">
+                  <Pencil size={16} />
+                  Редактировать
+                </Menu.Item>
+                <Menu.Item
+                  color="red.600"
+                  disabled={deletingComment}
+                  onClick={handleDeleteComment}
+                  value="delete">
+                  <Trash2 size={16} />
+                  Удалить
+                </Menu.Item>
+              </Menu.Content>
+            </Menu.Positioner>
+          </Menu.Root>
+        </Flex>
+
+        <Flex align="center" mt="1">
+          <Text
+            fontFamily="Roboto, Arial, sans-serif"
+            textStyle="sm"
+            mt="2"
+            dangerouslySetInnerHTML={{
+              __html: DOMPurify.sanitize(comment.content),
+            }}
+          />
+        </Flex>
+
+        <DrawerRoot
+          placement={'bottom'}
+          open={editDrawerOpen}
+          onOpenChange={details => setEditDrawerOpen(details.open)}>
+          <DrawerBackdrop />
+          <DrawerContent roundedTop={'l3'}>
+            <DrawerHeader>
+              <DrawerTitle>Редактировать комментарий</DrawerTitle>
+            </DrawerHeader>
+            <DrawerBody>
+              <Textarea
+                minH="140px"
+                placeholder="Текст комментария"
+                value={editContent}
+                onChange={event => setEditContent(event.target.value)}
+              />
+              <Box marginTop="1rem">
+                <AttachmentGrid
+                  attachments={keptAttachments}
+                  onRemove={attachment =>
+                    setKeptAttachments(current =>
+                      current.filter(item => item.ID !== attachment.ID),
+                    )
+                  }
+                />
+              </Box>
+              <AttachmentPicker
+                files={editFiles}
+                inputId={`comment-edit-attachments-${comment.ID}`}
+                onChange={setEditFiles}
+              />
+              {updateCommentError ? (
+                <Box color="red.500" marginTop="0.75rem">
+                  {updateCommentError}
+                </Box>
+              ) : null}
+            </DrawerBody>
+            <DrawerFooter>
+              <DrawerActionTrigger asChild>
+                <Button variant="outline">Отмена</Button>
+              </DrawerActionTrigger>
+              <Button disabled={updatingComment} onClick={handleUpdateComment}>
+                {updatingComment ? 'Сохраняем...' : 'Сохранить'}
+              </Button>
+            </DrawerFooter>
+            <DrawerCloseTrigger />
+          </DrawerContent>
+        </DrawerRoot>
+
+        <LikeControl likableType="comment" likableId={comment.ID} />
+        <AttachmentGrid attachments={comment.attachments} />
+        {deleteCommentError ? (
+          <Box color="red.500" marginTop="0.75rem">
+            {deleteCommentError}
+          </Box>
+        ) : null}
+      </TimelineContent>
+    </TimelineItem>
   );
 };
 
@@ -220,13 +405,14 @@ const Post: FC<Props> = ({post}) => {
           gap="3"
           mt="2"
           fontFamily="Roboto, Arial, sans-serif">
-          <span>{getFormattedDate(post.CreatedAt)}</span>
           {isEdited ? (
             <Flex align="center" as="span" gap="1">
               <Pencil size={14} />
               {getFormattedDate(post.UpdatedAt)}
             </Flex>
-          ) : null}
+          ) : (
+            getFormattedDate(post.CreatedAt)
+          )}
         </Card.Description>
 
         <DrawerRoot
@@ -356,29 +542,7 @@ const Post: FC<Props> = ({post}) => {
                 ) : null}
 
                 {comments?.map(comment => (
-                  <TimelineItem key={comment.ID}>
-                    <TimelineConnector />
-                    <TimelineContent>
-                      <TimelineDescription fontFamily="Roboto, Arial, sans-serif">
-                        {getFormattedDate(comment.CreatedAt)}
-                      </TimelineDescription>
-                      <Flex align="center" mt="1">
-                        <Text
-                          fontFamily="Roboto, Arial, sans-serif"
-                          textStyle="sm"
-                          mt="2"
-                          dangerouslySetInnerHTML={{
-                            __html: DOMPurify.sanitize(comment.content),
-                          }}
-                        />
-                      </Flex>
-                      <LikeControl
-                        likableType="comment"
-                        likableId={comment.ID}
-                      />
-                      <AttachmentGrid attachments={comment.attachments} />
-                    </TimelineContent>
-                  </TimelineItem>
+                  <CommentItem comment={comment} key={comment.ID} />
                 ))}
               </TimelineRoot>
             </Collapsible.Content>

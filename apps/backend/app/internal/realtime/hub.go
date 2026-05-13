@@ -7,6 +7,8 @@ const (
 	EventPostUpdated    = "post.updated"
 	EventPostDeleted    = "post.deleted"
 	EventCommentCreated = "comment.created"
+	EventCommentUpdated = "comment.updated"
+	EventCommentDeleted = "comment.deleted"
 	EventLikeCreated    = "like.created"
 	EventLikeDeleted    = "like.deleted"
 	EventThreadDeleted  = "thread.deleted"

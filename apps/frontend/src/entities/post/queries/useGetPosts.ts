@@ -1,16 +1,16 @@
 import {getPosts} from '@/entities/post/api/getPosts';
 import {useQuery} from '@tanstack/react-query';
 
-export const useGetPosts = (threadId: string) => {
+export const useGetPosts = (threadId: string, enabled = true) => {
   const page = 1;
   const limit = 100;
 
   const query = useQuery({
     queryKey: ['posts', threadId, page, limit],
     queryFn: () => getPosts(threadId, page, limit),
-    enabled: Boolean(threadId),
-    refetchInterval: 2000,
-    refetchIntervalInBackground: true,
+    enabled: enabled && Boolean(threadId),
+    refetchInterval: enabled ? 2000 : false,
+    refetchIntervalInBackground: enabled,
   });
 
   return {
