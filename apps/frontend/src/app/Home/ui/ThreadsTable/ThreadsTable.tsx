@@ -29,34 +29,57 @@ const ThreadsTable: FC<Props> = ({threads, loaded, error}) => {
   }
 
   return (
-    <Table.Root
-      interactive
-      borderRadius="20px"
-      padding="10px"
-      variant="outline">
-      <Table.Header>
-        <Table.Row>
-          <Table.ColumnHeader>Title</Table.ColumnHeader>
-          <Table.ColumnHeader textAlign="end">Categories</Table.ColumnHeader>
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
-        {threads?.map(thread => (
-          <Table.Row onClick={() => handleClick(thread.ID)} key={thread.ID}>
-            <Table.Cell>{thread.title}</Table.Cell>
-            <Table.Cell>
-              <Box gap="2" display="flex" justifyContent="flex-end">
-                {(thread.categories ?? []).map(categorie => (
-                  <Tag key={categorie} colorScheme="purple">
-                    {categorie}
-                  </Tag>
-                ))}
-              </Box>
-            </Table.Cell>
-          </Table.Row>
-        ))}
-      </Table.Body>
-    </Table.Root>
+    <Box overflowX="auto" width="100%">
+      <Box
+        borderWidth="1px"
+        borderColor="gray.200"
+        borderRadius="8px"
+        overflow="hidden">
+        <Table.Root interactive variant="line" width="100%">
+          <Table.Header>
+            <Table.Row bg="gray.100">
+              <Table.ColumnHeader bg="gray.100" color="gray.600" fontWeight="600">
+                Title
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                bg="gray.100"
+                color="gray.600"
+                fontWeight="600"
+                textAlign="end">
+                Categories
+              </Table.ColumnHeader>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {threads?.map((thread, index) => (
+              <Table.Row
+                cursor="pointer"
+                onClick={() => handleClick(thread.ID)}
+                key={thread.ID}>
+                <Table.Cell
+                  borderBottomWidth={
+                    index === threads.length - 1 ? '0' : undefined
+                  }>
+                  {thread.title}
+                </Table.Cell>
+                <Table.Cell
+                  borderBottomWidth={
+                    index === threads.length - 1 ? '0' : undefined
+                  }>
+                  <Box gap="2" display="flex" justifyContent="flex-end">
+                    {(thread.categories ?? []).map(categorie => (
+                      <Tag key={categorie} colorScheme="purple">
+                        {categorie}
+                      </Tag>
+                    ))}
+                  </Box>
+                </Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table.Root>
+      </Box>
+    </Box>
   );
 };
 
