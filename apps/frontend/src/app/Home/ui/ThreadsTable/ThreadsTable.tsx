@@ -59,7 +59,9 @@ const ThreadsTable: FC<Props> = ({threads, loaded, error}) => {
                 <Table.Cell
                   borderBottomWidth={
                     index === threads.length - 1 ? '0' : undefined
-                  }>
+                  }
+                  whiteSpace="pre-wrap"
+                  overflowWrap="anywhere">
                   {thread.title}
                 </Table.Cell>
                 <Table.Cell

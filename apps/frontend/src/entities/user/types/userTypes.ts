@@ -22,6 +22,7 @@ export interface UserPermissions extends ResourcePermissions {
 }
 
 export interface Role {
+  ID?: string;
   id: string; // UUID as string
   name: string;
   permissions: Permissions;
@@ -30,13 +31,23 @@ export interface Role {
 }
 
 export interface User {
+  ID?: string;
   id: string; // UUID as string
   username: string;
   email: string;
   passwordHash: string;
+  role?: Role;
+  role_id?: string;
   roleId: string; // UUID as string
   createdAt: string; // ISO string for date
   updatedAt: string; // ISO string for date
+  CreatedAt?: string;
+  UpdatedAt?: string;
+}
+
+export interface CurrentUserResponse {
+  error?: string;
+  user?: User;
 }
 
 export interface SignUpRequestModel {

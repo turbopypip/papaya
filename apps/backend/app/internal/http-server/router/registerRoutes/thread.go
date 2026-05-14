@@ -11,5 +11,6 @@ func Thread(group *gin.RouterGroup) {
 	group.GET("/all", threadController.Impl{}.GetThreads)
 	group.GET("/search", threadController.Impl{}.SearchThreads)
 	group.GET("/:id", threadController.Impl{}.GetThread)
+	group.PUT("/:id", threadController.Impl{}.UpdateThread)
 	group.DELETE("/:id", threadController.Impl{}.DeleteThread)
 }

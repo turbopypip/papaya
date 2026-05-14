@@ -6,12 +6,13 @@ const (
 	EventPostCreated    = "post.created"
 	EventPostUpdated    = "post.updated"
 	EventPostDeleted    = "post.deleted"
+	EventThreadUpdated  = "thread.updated"
+	EventThreadDeleted  = "thread.deleted"
 	EventCommentCreated = "comment.created"
 	EventCommentUpdated = "comment.updated"
 	EventCommentDeleted = "comment.deleted"
 	EventLikeCreated    = "like.created"
 	EventLikeDeleted    = "like.deleted"
-	EventThreadDeleted  = "thread.deleted"
 )
 
 type Event struct {

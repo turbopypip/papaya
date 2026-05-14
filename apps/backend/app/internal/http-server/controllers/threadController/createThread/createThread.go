@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/cache"
+	"papaya-backend/internal/forumvalidation"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
 	"strings"
@@ -31,13 +32,13 @@ func CreateThread(c *gin.Context) {
 		})
 		return
 	}
-	if strings.TrimSpace(body.Title) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Thread title is required"})
+	categories, err := forumvalidation.ValidateThread(body.Title, body.Categories)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if body.Categories == nil {
-		body.Categories = []string{}
-	}
+	body.Title = strings.TrimSpace(body.Title)
+	body.Categories = categories
 
 	// init thread id
 	threadId, err := uuid.NewV6()
