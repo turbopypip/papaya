@@ -64,6 +64,8 @@ export const useThreadEvents = (threadId: string, enabled = true) => {
     eventSource.addEventListener('post.created', onPostChanged);
     eventSource.addEventListener('post.updated', onPostChanged);
     eventSource.addEventListener('post.deleted', onPostChanged);
+    eventSource.addEventListener('thread.updated', onPostChanged);
+    eventSource.addEventListener('thread.deleted', onPostChanged);
     eventSource.addEventListener('comment.created', onCommentChanged);
     eventSource.addEventListener('comment.updated', onCommentChanged);
     eventSource.addEventListener('comment.deleted', onCommentChanged);
@@ -73,6 +75,8 @@ export const useThreadEvents = (threadId: string, enabled = true) => {
       eventSource.removeEventListener('post.created', onPostChanged);
       eventSource.removeEventListener('post.updated', onPostChanged);
       eventSource.removeEventListener('post.deleted', onPostChanged);
+      eventSource.removeEventListener('thread.updated', onPostChanged);
+      eventSource.removeEventListener('thread.deleted', onPostChanged);
       eventSource.removeEventListener('comment.created', onCommentChanged);
       eventSource.removeEventListener('comment.updated', onCommentChanged);
       eventSource.removeEventListener('comment.deleted', onCommentChanged);

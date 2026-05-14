@@ -110,10 +110,6 @@ func SeedDevUser() {
 }
 
 func userPermissions() models.Permissions {
-	readCreate := models.ResourcePermissions{
-		Create: true,
-		Read:   true,
-	}
 	ownContent := models.ResourcePermissions{
 		Create:    true,
 		Read:      true,
@@ -127,7 +123,7 @@ func userPermissions() models.Permissions {
 	}
 
 	return models.Permissions{
-		Threads:     readCreate,
+		Threads:     ownContent,
 		Posts:       ownContent,
 		Comments:    ownContent,
 		Categories:  ownContent,

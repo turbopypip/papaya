@@ -200,6 +200,8 @@ const CommentItem = ({comment}: {comment: CommentType}) => {
             fontFamily="Roboto, Arial, sans-serif"
             textStyle="sm"
             mt="2"
+            whiteSpace="pre-wrap"
+            overflowWrap="anywhere"
             dangerouslySetInnerHTML={{
               __html: DOMPurify.sanitize(comment.content),
             }}
@@ -363,6 +365,8 @@ const Post: FC<Props> = ({post}) => {
             flex="1"
             fontFamily="Roboto, Arial, sans-serif"
             mt="2"
+            whiteSpace="pre-wrap"
+            overflowWrap="anywhere"
             dangerouslySetInnerHTML={{
               __html: DOMPurify.sanitize(post.content),
             }}

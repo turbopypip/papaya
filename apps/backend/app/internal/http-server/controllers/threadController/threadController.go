@@ -7,6 +7,7 @@ import (
 	"papaya-backend/internal/http-server/controllers/threadController/getThread"
 	"papaya-backend/internal/http-server/controllers/threadController/getThreads"
 	"papaya-backend/internal/http-server/controllers/threadController/searchThreads"
+	"papaya-backend/internal/http-server/controllers/threadController/updateThread"
 )
 
 // ThreadController defines methods for managing roles.
@@ -22,6 +23,8 @@ type ThreadController interface {
 
 	// SearchThreads returns a list of threads. Requires id or title or categories as query params
 	SearchThreads(c *gin.Context)
+
+	UpdateThread(c *gin.Context)
 
 	DeleteThread(c *gin.Context)
 }
@@ -46,6 +49,10 @@ func (r Impl) GetThread(c *gin.Context) {
 // SearchThreads returns a list of threads. Requires id or title or categories as query params
 func (r Impl) SearchThreads(c *gin.Context) {
 	searchThreads.SearchThreads(c)
+}
+
+func (r Impl) UpdateThread(c *gin.Context) {
+	updateThread.UpdateThread(c)
 }
 
 func (r Impl) DeleteThread(c *gin.Context) {
