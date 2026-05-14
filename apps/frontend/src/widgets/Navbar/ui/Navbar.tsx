@@ -8,7 +8,6 @@ import {logOutRequest} from '@/entities/user/api/logOut';
 import {
   disableDevAutoLogin,
   enableDevAutoLogin,
-  emitAuthChanged,
 } from '@/entities/user/lib/authEvents';
 import {useUserStore} from '@/entities/user';
 import {IS_DEV_MODE} from '@/shared/env';
@@ -30,7 +29,6 @@ const Navbar = () => {
     try {
       await logOutRequest();
       clearUser();
-      emitAuthChanged();
       router.push('/');
     } finally {
       setIsLoggingOut(false);
@@ -43,7 +41,6 @@ const Navbar = () => {
     try {
       await devLogInRequest();
       enableDevAutoLogin();
-      emitAuthChanged();
       router.push('/');
     } finally {
       setIsDevLoggingIn(false);

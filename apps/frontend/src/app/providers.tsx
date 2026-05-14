@@ -1,8 +1,31 @@
 'use client';
 
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {ChakraProvider, defaultSystem} from '@chakra-ui/react';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {AUTH_CHANGED_EVENT} from '@/entities/user/lib/authEvents';
+
+const AuthQueryBoundary = ({children}: {children: React.ReactNode}) => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const resetUserScopedCache = () => {
+      queryClient.clear();
+    };
+
+    window.addEventListener(AUTH_CHANGED_EVENT, resetUserScopedCache);
+
+    return () => {
+      window.removeEventListener(AUTH_CHANGED_EVENT, resetUserScopedCache);
+    };
+  }, [queryClient]);
+
+  return children;
+};
 
 const Providers = ({children}: {children: React.ReactNode}) => {
   const [queryClient] = useState(
@@ -19,7 +42,9 @@ const Providers = ({children}: {children: React.ReactNode}) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ChakraProvider value={defaultSystem}>{children}</ChakraProvider>
+      <AuthQueryBoundary>
+        <ChakraProvider value={defaultSystem}>{children}</ChakraProvider>
+      </AuthQueryBoundary>
     </QueryClientProvider>
   );
 };
