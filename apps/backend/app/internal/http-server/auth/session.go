@@ -3,6 +3,9 @@ package auth
 import (
 	"net/http"
 	"os"
+	"papaya-backend/internal/config"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,14 +24,14 @@ func SetAuthCookie(c *gin.Context, user models.User) error {
 		return err
 	}
 
-	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetSameSite(cookieSameSite())
 	c.SetCookie(
 		"Authorization",
 		tokenString,
 		3600*24*30,
 		"/",
-		"",
-		false,
+		os.Getenv("AUTH_COOKIE_DOMAIN"),
+		cookieSecure(),
 		true,
 	)
 
@@ -36,7 +39,28 @@ func SetAuthCookie(c *gin.Context, user models.User) error {
 }
 
 func ClearAuthCookie(c *gin.Context) {
-	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("Authorization", "", -1, "/", "", false, true)
+	c.SetSameSite(cookieSameSite())
+	c.SetCookie("Authorization", "", -1, "/", os.Getenv("AUTH_COOKIE_DOMAIN"), cookieSecure(), true)
 	c.SetCookie("Authorization", "", -1, "", "", false, true)
+}
+
+func cookieSameSite() http.SameSite {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("AUTH_COOKIE_SAME_SITE"))) {
+	case "strict":
+		return http.SameSiteStrictMode
+	case "none":
+		return http.SameSiteNoneMode
+	default:
+		return http.SameSiteLaxMode
+	}
+}
+
+func cookieSecure() bool {
+	value := strings.TrimSpace(os.Getenv("AUTH_COOKIE_SECURE"))
+	if value != "" {
+		secure, err := strconv.ParseBool(value)
+		return err == nil && secure
+	}
+
+	return config.CurrentEnv() == "prod"
 }

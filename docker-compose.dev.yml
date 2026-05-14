@@ -7,6 +7,7 @@ services:
       APP_ENV: dev
       ENV: dev
       LOCAL_CONFIG_PATH: /config/dev.yaml
+      DEV_USER_ROLE: ${DEV_USER_ROLE:-admin}
 
   frontend:
     build:

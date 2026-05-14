@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/cache"
+	"papaya-backend/internal/http-server/rbac"
 	"papaya-backend/internal/realtime"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
@@ -23,9 +24,6 @@ func DeleteThread(c *gin.Context) {
 		return
 	}
 
-	user, _ := c.Get("user")
-	userData := user.(models.User)
-
 	var thread models.Thread
 	if err := storage.DB.First(&thread, "id = ?", threadID).Error; errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Thread not found"})
@@ -35,7 +33,7 @@ func DeleteThread(c *gin.Context) {
 		return
 	}
 
-	if !canDeleteThread(userData, thread) {
+	if !rbac.Can(c, rbac.ResourceThreads, rbac.ActionDelete, thread.UserId) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot delete this thread"})
 		return
 	}
@@ -139,19 +137,6 @@ func DeleteThread(c *gin.Context) {
 		"message":   "deleted thread",
 		"thread_id": thread.Id,
 	})
-}
-
-func canDeleteThread(user models.User, thread models.Thread) bool {
-	var role models.Role
-	if err := storage.DB.First(&role, "id = ?", user.RoleId).Error; err != nil {
-		return thread.UserId == user.Id
-	}
-
-	if thread.UserId == user.Id && role.Permissions.Threads.DeleteOwn {
-		return true
-	}
-
-	return role.Permissions.Threads.DeleteAny
 }
 
 func invalidateCache(c *gin.Context, thread models.Thread, postIDs []uuid.UUID) {

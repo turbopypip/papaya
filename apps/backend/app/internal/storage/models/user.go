@@ -46,6 +46,6 @@ type User struct {
 	Id           uuid.UUID `json:"ID" gorm:"primary_key"`
 	Username     string    `json:"username" gorm:"index;unique"`
 	Email        string    `json:"email" gorm:"index;unique"`
-	PasswordHash string    `json:"password_hash" gorm:"index"`
+	PasswordHash string    `json:"-" gorm:"index"`
 	RoleId       uuid.UUID `json:"role_id" gorm:"references:Role"`
 }

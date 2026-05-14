@@ -7,6 +7,7 @@ import (
 	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/cache"
 	"papaya-backend/internal/forumvalidation"
+	"papaya-backend/internal/http-server/rbac"
 	"papaya-backend/internal/realtime"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
@@ -53,7 +54,7 @@ func UpdatePost(c *gin.Context) {
 		return
 	}
 
-	if !canUpdatePost(userData, post) {
+	if !rbac.Can(c, rbac.ResourcePosts, rbac.ActionUpdate, post.UserId) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot edit this post"})
 		return
 	}
@@ -167,19 +168,6 @@ func bindBody(c *gin.Context) (updatePostBody, error) {
 	}
 
 	return body, nil
-}
-
-func canUpdatePost(user models.User, post models.Post) bool {
-	var role models.Role
-	if err := storage.DB.First(&role, "id = ?", user.RoleId).Error; err != nil {
-		return post.UserId == user.Id
-	}
-
-	if post.UserId == user.Id && role.Permissions.Posts.UpdateOwn {
-		return true
-	}
-
-	return role.Permissions.Posts.UpdateAny
 }
 
 func invalidateCache(c *gin.Context, post models.Post) {

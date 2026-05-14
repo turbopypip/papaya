@@ -6,6 +6,7 @@ import (
 	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/cache"
 	"papaya-backend/internal/forumvalidation"
+	"papaya-backend/internal/http-server/rbac"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
 	"strings"
@@ -39,6 +40,10 @@ func CreateThread(c *gin.Context) {
 	}
 	body.Title = strings.TrimSpace(body.Title)
 	body.Categories = categories
+	if len(body.Categories) > 0 && !rbac.CanAny(c, rbac.ResourceCategories, rbac.ActionCreate) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot add categories"})
+		return
+	}
 
 	// init thread id
 	threadId, err := uuid.NewV6()

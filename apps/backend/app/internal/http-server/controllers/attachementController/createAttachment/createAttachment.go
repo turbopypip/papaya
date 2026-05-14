@@ -1,6 +1,7 @@
 package createAttachment
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -8,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"papaya-backend/internal/attachments"
+	"papaya-backend/internal/http-server/rbac"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
 )
@@ -38,6 +40,9 @@ func CreateAttachment(c *gin.Context) {
 
 	user, _ := c.Get("user")
 	userData := user.(models.User)
+	if !canAttachToOwner(c, ownerType, ownerID) {
+		return
+	}
 
 	var savedFiles []string
 	var createdAttachments []models.Attachment
@@ -64,4 +69,48 @@ func CreateAttachment(c *gin.Context) {
 		"message":     "created attachment",
 		"attachments": createdAttachments,
 	})
+}
+
+func canAttachToOwner(c *gin.Context, ownerType string, ownerID uuid.UUID) bool {
+	switch ownerType {
+	case attachments.OwnerTypeThread:
+		var thread models.Thread
+		if err := storage.DB.First(&thread, "id = ?", ownerID).Error; err != nil {
+			abortMissingOwner(c, err)
+			return false
+		}
+		if rbac.Can(c, rbac.ResourceThreads, rbac.ActionUpdate, thread.UserId) {
+			return true
+		}
+	case attachments.OwnerTypePost:
+		var post models.Post
+		if err := storage.DB.First(&post, "id = ?", ownerID).Error; err != nil {
+			abortMissingOwner(c, err)
+			return false
+		}
+		if rbac.Can(c, rbac.ResourcePosts, rbac.ActionUpdate, post.UserId) {
+			return true
+		}
+	case attachments.OwnerTypeComment:
+		var comment models.Comment
+		if err := storage.DB.First(&comment, "id = ?", ownerID).Error; err != nil {
+			abortMissingOwner(c, err)
+			return false
+		}
+		if rbac.Can(c, rbac.ResourceComments, rbac.ActionUpdate, comment.UserId) {
+			return true
+		}
+	}
+
+	rbac.AbortForbidden(c, "You cannot attach files to this content")
+	return false
+}
+
+func abortMissingOwner(c *gin.Context, err error) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Attachment owner not found"})
+		return
+	}
+
+	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve attachment owner"})
 }

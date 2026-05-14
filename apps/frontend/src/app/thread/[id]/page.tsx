@@ -460,7 +460,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
         <Box marginBottom="2rem">
           <Separator margin="2em 0 2em 0" />
           {posts.map(post => (
-            <Post key={post.ID} post={post} />
+            <Post key={post.ID} post={post} currentUser={currentUser} />
           ))}
         </Box>
       ) : (

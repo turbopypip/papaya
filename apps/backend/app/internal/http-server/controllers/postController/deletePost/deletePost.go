@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/cache"
+	"papaya-backend/internal/http-server/rbac"
 	"papaya-backend/internal/realtime"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
@@ -23,9 +24,6 @@ func DeletePost(c *gin.Context) {
 		return
 	}
 
-	user, _ := c.Get("user")
-	userData := user.(models.User)
-
 	var post models.Post
 	if err := storage.DB.First(&post, "id = ?", postID).Error; errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
@@ -35,7 +33,7 @@ func DeletePost(c *gin.Context) {
 		return
 	}
 
-	if !canDeletePost(userData, post) {
+	if !rbac.Can(c, rbac.ResourcePosts, rbac.ActionDelete, post.UserId) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot delete this post"})
 		return
 	}
@@ -111,19 +109,6 @@ func DeletePost(c *gin.Context) {
 		"message": "deleted post",
 		"post_id": post.Id,
 	})
-}
-
-func canDeletePost(user models.User, post models.Post) bool {
-	var role models.Role
-	if err := storage.DB.First(&role, "id = ?", user.RoleId).Error; err != nil {
-		return post.UserId == user.Id
-	}
-
-	if post.UserId == user.Id && role.Permissions.Posts.DeleteOwn {
-		return true
-	}
-
-	return role.Permissions.Posts.DeleteAny
 }
 
 func invalidateCache(c *gin.Context, post models.Post) {

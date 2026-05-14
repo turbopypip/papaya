@@ -2,13 +2,14 @@ package registerRoutes
 
 import (
 	"papaya-backend/internal/http-server/controllers/postController"
+	"papaya-backend/internal/http-server/rbac"
 
 	"github.com/gin-gonic/gin"
 )
 
 func Post(group *gin.RouterGroup) {
-	group.POST("", postController.Impl{}.CreatePost)
-	group.GET("", postController.Impl{}.GetPostsWithThreadId)
-	group.PUT("/:id", postController.Impl{}.UpdatePost)
-	group.DELETE("/:id", postController.Impl{}.DeletePost)
+	group.POST("", rbac.Require(rbac.ResourcePosts, rbac.ActionCreate), postController.Impl{}.CreatePost)
+	group.GET("", rbac.Require(rbac.ResourcePosts, rbac.ActionRead), postController.Impl{}.GetPostsWithThreadId)
+	group.PUT("/:id", rbac.RequireAny(rbac.ResourcePosts, rbac.ActionUpdate), postController.Impl{}.UpdatePost)
+	group.DELETE("/:id", rbac.RequireAny(rbac.ResourcePosts, rbac.ActionDelete), postController.Impl{}.DeletePost)
 }

@@ -7,6 +7,7 @@ import (
 	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/cache"
 	"papaya-backend/internal/forumvalidation"
+	"papaya-backend/internal/http-server/rbac"
 	"papaya-backend/internal/realtime"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
@@ -55,8 +56,13 @@ func UpdateThread(c *gin.Context) {
 		return
 	}
 
-	if !canUpdateThread(userData, thread) {
+	if !rbac.Can(c, rbac.ResourceThreads, rbac.ActionUpdate, thread.UserId) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot edit this thread"})
+		return
+	}
+	if !sameCategories(thread.Categories, categories) &&
+		!rbac.CanAny(c, rbac.ResourceCategories, rbac.ActionUpdate) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot update categories"})
 		return
 	}
 
@@ -174,17 +180,17 @@ func bindBody(c *gin.Context) (updateThreadBody, error) {
 	return body, nil
 }
 
-func canUpdateThread(user models.User, thread models.Thread) bool {
-	var role models.Role
-	if err := storage.DB.First(&role, "id = ?", user.RoleId).Error; err != nil {
-		return thread.UserId == user.Id
+func sameCategories(left []string, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for i := range left {
+		if left[i] != right[i] {
+			return false
+		}
 	}
 
-	if thread.UserId == user.Id && role.Permissions.Threads.UpdateOwn {
-		return true
-	}
-
-	return role.Permissions.Threads.UpdateAny
+	return true
 }
 
 func invalidateCache(c *gin.Context, thread models.Thread) {

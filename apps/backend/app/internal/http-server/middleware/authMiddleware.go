@@ -60,8 +60,16 @@ func Auth(c *gin.Context) {
 			return
 		}
 
+		var role models.Role
+		result = storage.DB.Where("id = ?", user.RoleId).Limit(1).Find(&role)
+		if result.Error != nil || result.RowsAffected == 0 {
+			abortUnauthorized(c)
+			return
+		}
+
 		// Attach to request
 		c.Set("user", user)
+		c.Set("role", role)
 
 		// Continue
 		c.Next()

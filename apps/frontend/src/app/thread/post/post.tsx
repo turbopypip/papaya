@@ -49,9 +49,11 @@ import {useUpdatePost} from '@/entities/post/queries/useUpdatePost';
 import {useDeletePost} from '@/entities/post/queries/useDeletePost';
 import {useUpdateComment} from '@/entities/comment/queries/useUpdateComment';
 import {useDeleteComment} from '@/entities/comment/queries/useDeleteComment';
+import {User} from '@/entities/user/types/userTypes';
 
 type Props = {
   post: PostType;
+  currentUser: User | null;
 };
 
 const LikeControl = ({
@@ -87,7 +89,13 @@ const LikeControl = ({
   );
 };
 
-const CommentItem = ({comment}: {comment: CommentType}) => {
+const CommentItem = ({
+  comment,
+  currentUser,
+}: {
+  comment: CommentType;
+  currentUser: User | null;
+}) => {
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
@@ -111,6 +119,18 @@ const CommentItem = ({comment}: {comment: CommentType}) => {
     new Date(comment.UpdatedAt).getTime() -
       new Date(comment.CreatedAt).getTime() >
       1000;
+  const currentUserId = currentUser?.ID ?? currentUser?.id;
+  const commentPermissions = currentUser?.role?.permissions.comments;
+  const isCommentOwner = currentUserId === comment.user_id;
+  const canEditComment = Boolean(
+    commentPermissions?.update_any ||
+      (isCommentOwner && commentPermissions?.update_own),
+  );
+  const canDeleteComment = Boolean(
+    commentPermissions?.delete_any ||
+      (isCommentOwner && commentPermissions?.delete_own),
+  );
+  const canManageComment = canEditComment || canDeleteComment;
 
   useEffect(() => {
     if (!editDrawerOpen) {
@@ -163,36 +183,42 @@ const CommentItem = ({comment}: {comment: CommentType}) => {
               getFormattedDate(comment.CreatedAt)
             )}
           </TimelineDescription>
-          <Menu.Root
-            open={actionMenuOpen}
-            onOpenChange={details => setActionMenuOpen(details.open)}>
-            <Menu.Trigger asChild>
-              <IconButton
-                aria-label="Comment actions"
-                onClick={() => setActionMenuOpen(open => !open)}
-                onMouseEnter={() => setActionMenuOpen(true)}
-                size="xs"
-                variant="ghost">
-                <EllipsisVertical size={16} />
-              </IconButton>
-            </Menu.Trigger>
-            <Menu.Positioner onMouseLeave={() => setActionMenuOpen(false)}>
-              <Menu.Content>
-                <Menu.Item onClick={openEditDrawer} value="edit">
-                  <Pencil size={16} />
-                  Редактировать
-                </Menu.Item>
-                <Menu.Item
-                  color="red.600"
-                  disabled={deletingComment}
-                  onClick={handleDeleteComment}
-                  value="delete">
-                  <Trash2 size={16} />
-                  Удалить
-                </Menu.Item>
-              </Menu.Content>
-            </Menu.Positioner>
-          </Menu.Root>
+          {canManageComment ? (
+            <Menu.Root
+              open={actionMenuOpen}
+              onOpenChange={details => setActionMenuOpen(details.open)}>
+              <Menu.Trigger asChild>
+                <IconButton
+                  aria-label="Comment actions"
+                  onClick={() => setActionMenuOpen(open => !open)}
+                  onMouseEnter={() => setActionMenuOpen(true)}
+                  size="xs"
+                  variant="ghost">
+                  <EllipsisVertical size={16} />
+                </IconButton>
+              </Menu.Trigger>
+              <Menu.Positioner onMouseLeave={() => setActionMenuOpen(false)}>
+                <Menu.Content>
+                  {canEditComment ? (
+                    <Menu.Item onClick={openEditDrawer} value="edit">
+                      <Pencil size={16} />
+                      Редактировать
+                    </Menu.Item>
+                  ) : null}
+                  {canDeleteComment ? (
+                    <Menu.Item
+                      color="red.600"
+                      disabled={deletingComment}
+                      onClick={handleDeleteComment}
+                      value="delete">
+                      <Trash2 size={16} />
+                      Удалить
+                    </Menu.Item>
+                  ) : null}
+                </Menu.Content>
+              </Menu.Positioner>
+            </Menu.Root>
+          ) : null}
         </Flex>
 
         <Flex align="center" mt="1">
@@ -269,7 +295,7 @@ const CommentItem = ({comment}: {comment: CommentType}) => {
   );
 };
 
-const Post: FC<Props> = ({post}) => {
+const Post: FC<Props> = ({post, currentUser}) => {
   const [commentForm, setCommentForm] = useState<CreateCommentRequest>({
     content: '',
     post_id: post.ID,
@@ -307,6 +333,16 @@ const Post: FC<Props> = ({post}) => {
     post.UpdatedAt &&
     new Date(post.UpdatedAt).getTime() - new Date(post.CreatedAt).getTime() >
       1000;
+  const currentUserId = currentUser?.ID ?? currentUser?.id;
+  const postPermissions = currentUser?.role?.permissions.posts;
+  const isPostOwner = currentUserId === post.user_id;
+  const canEditPost = Boolean(
+    postPermissions?.update_any || (isPostOwner && postPermissions?.update_own),
+  );
+  const canDeletePost = Boolean(
+    postPermissions?.delete_any || (isPostOwner && postPermissions?.delete_own),
+  );
+  const canManagePost = canEditPost || canDeletePost;
 
   useEffect(() => {
     if (!editDrawerOpen) {
@@ -371,36 +407,42 @@ const Post: FC<Props> = ({post}) => {
               __html: DOMPurify.sanitize(post.content),
             }}
           />
-          <Menu.Root
-            open={actionMenuOpen}
-            onOpenChange={details => setActionMenuOpen(details.open)}>
-            <Menu.Trigger asChild>
-              <IconButton
-                aria-label="Post actions"
-                onClick={() => setActionMenuOpen(open => !open)}
-                onMouseEnter={() => setActionMenuOpen(true)}
-                size="sm"
-                variant="ghost">
-                <EllipsisVertical size={18} />
-              </IconButton>
-            </Menu.Trigger>
-            <Menu.Positioner onMouseLeave={() => setActionMenuOpen(false)}>
-              <Menu.Content>
-                <Menu.Item onClick={openEditDrawer} value="edit">
-                  <Pencil size={16} />
-                  Редактировать
-                </Menu.Item>
-                <Menu.Item
-                  color="red.600"
-                  disabled={deletingPost}
-                  onClick={handleDeletePost}
-                  value="delete">
-                  <Trash2 size={16} />
-                  Удалить
-                </Menu.Item>
-              </Menu.Content>
-            </Menu.Positioner>
-          </Menu.Root>
+          {canManagePost ? (
+            <Menu.Root
+              open={actionMenuOpen}
+              onOpenChange={details => setActionMenuOpen(details.open)}>
+              <Menu.Trigger asChild>
+                <IconButton
+                  aria-label="Post actions"
+                  onClick={() => setActionMenuOpen(open => !open)}
+                  onMouseEnter={() => setActionMenuOpen(true)}
+                  size="sm"
+                  variant="ghost">
+                  <EllipsisVertical size={18} />
+                </IconButton>
+              </Menu.Trigger>
+              <Menu.Positioner onMouseLeave={() => setActionMenuOpen(false)}>
+                <Menu.Content>
+                  {canEditPost ? (
+                    <Menu.Item onClick={openEditDrawer} value="edit">
+                      <Pencil size={16} />
+                      Редактировать
+                    </Menu.Item>
+                  ) : null}
+                  {canDeletePost ? (
+                    <Menu.Item
+                      color="red.600"
+                      disabled={deletingPost}
+                      onClick={handleDeletePost}
+                      value="delete">
+                      <Trash2 size={16} />
+                      Удалить
+                    </Menu.Item>
+                  ) : null}
+                </Menu.Content>
+              </Menu.Positioner>
+            </Menu.Root>
+          ) : null}
         </Flex>
 
         <Card.Description
@@ -546,7 +588,11 @@ const Post: FC<Props> = ({post}) => {
                 ) : null}
 
                 {comments?.map(comment => (
-                  <CommentItem comment={comment} key={comment.ID} />
+                  <CommentItem
+                    comment={comment}
+                    currentUser={currentUser}
+                    key={comment.ID}
+                  />
                 ))}
               </TimelineRoot>
             </Collapsible.Content>

@@ -53,6 +53,7 @@ func InitRouter() *gin.Engine {
 
 	// Role
 	roleRoutes := api.Group("/role")
+	roleRoutes.Use(middleware.Auth)
 	registerRoutes.Role(roleRoutes)
 
 	// Post

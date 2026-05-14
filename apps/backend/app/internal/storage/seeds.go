@@ -2,8 +2,10 @@ package storage
 
 import (
 	"errors"
+	"os"
 	"papaya-backend/internal/config"
 	"papaya-backend/internal/storage/models"
+	"strings"
 
 	"github.com/gofrs/uuid"
 	"github.com/sirupsen/logrus"
@@ -83,7 +85,7 @@ func SeedDevUser() {
 		Username:     DevUserUsername,
 		Email:        DevUserEmail,
 		PasswordHash: string(hash),
-		RoleId:       DefaultUserRoleID,
+		RoleId:       devUserRoleID(),
 	}
 
 	var user models.User
@@ -101,12 +103,24 @@ func SeedDevUser() {
 
 	user.Username = DevUserUsername
 	user.PasswordHash = string(hash)
-	user.RoleId = DefaultUserRoleID
+	user.RoleId = seededUser.RoleId
 	if err := DB.Save(&user).Error; err != nil {
 		logrus.Fatalf("Failed to update dev user: %v", err)
 	}
 
 	logrus.Info("Dev user seeded successfully")
+}
+
+func devUserRoleID() uuid.UUID {
+	role := strings.ToLower(strings.TrimSpace(os.Getenv("DEV_USER_ROLE")))
+	if role == "user" {
+		return DefaultUserRoleID
+	}
+	if role != "" && role != "admin" {
+		logrus.Warnf("Unknown DEV_USER_ROLE=%q, using admin", role)
+	}
+
+	return DefaultAdminRoleID
 }
 
 func userPermissions() models.Permissions {
