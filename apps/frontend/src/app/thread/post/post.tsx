@@ -13,7 +13,6 @@ import {
   Text,
   Textarea,
 } from '@chakra-ui/react';
-import DOMPurify from 'dompurify';
 import {FaPlus} from 'react-icons/fa';
 import {EllipsisVertical, Pencil, Trash2, UserRound} from 'lucide-react';
 import getFormattedDate from '@/shared/utils/getFormattedDate';
@@ -44,12 +43,17 @@ import {
   DrawerTrigger,
 } from '@/shared/Components/Drawer/ui/drawer';
 import {LikableType, useLike} from '@/entities/like';
-import {Attachment, AttachmentGrid, AttachmentPicker} from '@/entities/attachment';
+import {
+  Attachment,
+  AttachmentGrid,
+  AttachmentPicker,
+} from '@/entities/attachment';
 import {useUpdatePost} from '@/entities/post/queries/useUpdatePost';
 import {useDeletePost} from '@/entities/post/queries/useDeletePost';
 import {useUpdateComment} from '@/entities/comment/queries/useUpdateComment';
 import {useDeleteComment} from '@/entities/comment/queries/useDeleteComment';
 import {User} from '@/entities/user/types/userTypes';
+import {MarkdownEditor, MarkdownRenderer} from '@/shared/Components/Markdown';
 
 type Props = {
   post: PostType;
@@ -232,16 +236,9 @@ const CommentItem = ({
         </Flex>
 
         <Flex align="center" mt="1">
-          <Text
-            fontFamily="Roboto, Arial, sans-serif"
-            textStyle="sm"
-            mt="2"
-            whiteSpace="pre-wrap"
-            overflowWrap="anywhere"
-            dangerouslySetInnerHTML={{
-              __html: DOMPurify.sanitize(comment.content),
-            }}
-          />
+          <Box fontFamily="Roboto, Arial, sans-serif" mt="2" textStyle="sm">
+            <MarkdownRenderer content={comment.content} />
+          </Box>
         </Flex>
 
         <DrawerRoot
@@ -254,11 +251,11 @@ const CommentItem = ({
               <DrawerTitle>Редактировать комментарий</DrawerTitle>
             </DrawerHeader>
             <DrawerBody>
-              <Textarea
+              <MarkdownEditor
                 minH="140px"
                 placeholder="Текст комментария"
                 value={editContent}
-                onChange={event => setEditContent(event.target.value)}
+                onChange={setEditContent}
               />
               <Box marginTop="1rem">
                 <AttachmentGrid
@@ -326,8 +323,11 @@ const Post: FC<Props> = ({post, currentUser}) => {
     loading: creatingComment,
     error: createCommentError,
   } = useCreateComment();
-  const {comments, loaded: commentsLoaded, error: commentsError} =
-    useGetCommentsWithPostId(post.ID);
+  const {
+    comments,
+    loaded: commentsLoaded,
+    error: commentsError,
+  } = useGetCommentsWithPostId(post.ID);
   const {
     updatePost,
     loading: updatingPost,
@@ -407,16 +407,9 @@ const Post: FC<Props> = ({post, currentUser}) => {
     <Card.Root marginTop="2em" key={post.ID}>
       <Card.Body gap="2" fontFamily="Roboto, Arial, sans-serif">
         <Flex align="flex-start" gap="3" justify="space-between">
-          <Card.Description
-            flex="1"
-            fontFamily="Roboto, Arial, sans-serif"
-            mt="2"
-            whiteSpace="pre-wrap"
-            overflowWrap="anywhere"
-            dangerouslySetInnerHTML={{
-              __html: DOMPurify.sanitize(post.content),
-            }}
-          />
+          <Box flex="1" fontFamily="Roboto, Arial, sans-serif" mt="2">
+            <MarkdownRenderer content={post.content} />
+          </Box>
           {canManagePost ? (
             <Menu.Root
               open={actionMenuOpen}
@@ -483,11 +476,11 @@ const Post: FC<Props> = ({post, currentUser}) => {
               <DrawerTitle>Редактировать пост</DrawerTitle>
             </DrawerHeader>
             <DrawerBody>
-              <Textarea
+              <MarkdownEditor
                 minH="180px"
                 placeholder="Текст поста"
                 value={editContent}
-                onChange={event => setEditContent(event.target.value)}
+                onChange={setEditContent}
               />
               <Box marginTop="1rem">
                 <AttachmentGrid
