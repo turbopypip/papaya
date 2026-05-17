@@ -5,18 +5,18 @@ import {useRouter} from 'next/navigation';
 import {useValidate} from '@/entities/user/queries/useValidate';
 import {devLogInRequest} from '@/entities/user/api/devLogIn';
 import {logOutRequest} from '@/entities/user/api/logOut';
-import {
-  disableDevAutoLogin,
-  enableDevAutoLogin,
-} from '@/entities/user/lib/authEvents';
+import {disableDevAutoLogin} from '@/entities/user/lib/authEvents';
 import {useUserStore} from '@/entities/user';
 import {IS_DEV_MODE} from '@/shared/env';
+import {useQueryClient} from '@tanstack/react-query';
+import {completeAuthSuccess} from '@/entities/user/lib/authSuccess';
 
 const Navbar = () => {
   const isAuthenticated = useValidate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDevLoggingIn, setIsDevLoggingIn] = useState(false);
   const clearUser = useUserStore(state => state.clearUser);
+  const queryClient = useQueryClient();
   const router = useRouter();
   const handleClickRouting = (path: string) => {
     router.push(`/${path}`);
@@ -40,7 +40,7 @@ const Navbar = () => {
 
     try {
       await devLogInRequest();
-      enableDevAutoLogin();
+      await completeAuthSuccess(queryClient);
       router.push('/');
     } finally {
       setIsDevLoggingIn(false);

@@ -4,7 +4,6 @@ import {
   LogInResponseModel,
 } from '@/entities/user/types/userTypes';
 import {AxiosResponse} from 'axios';
-import {enableDevAutoLogin, emitAuthChanged} from '@/entities/user/lib/authEvents';
 
 export async function logInRequest(
   data: LogInRequestModel,
@@ -13,9 +12,6 @@ export async function logInRequest(
     '/auth/login',
     data,
   )) as AxiosResponse<LogInResponseModel>;
-
-  enableDevAutoLogin();
-  emitAuthChanged();
 
   return response.data;
 }

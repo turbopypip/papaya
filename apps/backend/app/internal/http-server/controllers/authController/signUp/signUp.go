@@ -2,7 +2,9 @@ package signUp
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"papaya-backend/internal/authvalidation"
 	"papaya-backend/internal/cache"
 	"papaya-backend/internal/storage"
 	"papaya-backend/internal/storage/models"
@@ -25,6 +27,22 @@ func SignUp(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "Failed to get body",
 			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := authvalidation.ValidatePassword(body.Password); err != nil {
+		var validationError authvalidation.PasswordValidationError
+		if errors.As(err, &validationError) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "Password does not meet complexity requirements",
+				"details": validationError.Reasons,
+			})
+			return
+		}
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
 		})
 		return
 	}

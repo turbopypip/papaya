@@ -5,6 +5,7 @@ import {
   SignUpResponseModel,
 } from '@/entities/user/types/userTypes';
 import {useUserStore} from '@/entities/user';
+import {getApiErrorMessage} from '@/entities/user/lib/apiError';
 
 export const useSignUp = () => {
   const [loaded, setLoaded] = useState(false);
@@ -23,8 +24,7 @@ export const useSignUp = () => {
       setUser(response.user);
       return response;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Ошибка регистрации';
-      setError(errorMessage);
+      setError(getApiErrorMessage(err, 'Ошибка регистрации'));
       return null;
     } finally {
       setLoaded(false);

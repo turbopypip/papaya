@@ -1,30 +1,24 @@
-import {useState} from 'react';
 import {logInRequest} from '../api/logIn';
 import {LogInRequestModel} from '@/entities/user/types/userTypes';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {completeAuthSuccess} from '@/entities/user/lib/authSuccess';
+import {getApiErrorMessage} from '@/entities/user/lib/apiError';
 
 export const useLogIn = () => {
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const logIn = async (data: LogInRequestModel) => {
-    try {
-      setLoaded(true);
-      setError(null);
+  const mutation = useMutation({
+    mutationFn: async (data: LogInRequestModel) => {
+      await logInRequest(data);
+      return completeAuthSuccess(queryClient);
+    },
+  });
 
-      // Отправляем запрос на сервер
-      const response = await logInRequest(data);
-
-      if (response.error) {
-        console.log(new Error(response.error));
-      }
-    } catch (err: any) {
-      console.log(err);
-      const errorMessage = err.response?.data?.error || 'Ошибка входа';
-      setError(errorMessage);
-    } finally {
-      setLoaded(true);
-    }
+  return {
+    logIn: mutation.mutateAsync,
+    loaded: mutation.isPending,
+    error: mutation.error
+      ? getApiErrorMessage(mutation.error, 'Ошибка входа')
+      : null,
   };
-
-  return {logIn, loaded, error};
 };

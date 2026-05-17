@@ -1,86 +1,173 @@
 'use client';
-import React, {useState} from 'react';
-import {Box, Button, Card, Input, Stack} from '@chakra-ui/react';
+import React from 'react';
+import {Box, Button, Card, Input, Stack, Text} from '@chakra-ui/react';
 import {Field} from '@/shared/Components/Field/ui/field';
 import styles from './styles.module.css';
 import {SignUpRequestModel} from '@/entities/user/types/userTypes';
 import {useSignUp} from '@/entities/user/queries/useSignUp';
-import {PasswordInput} from '@/shared/Components/PasswordInput/ui/password-input';
+import {
+  PasswordInput,
+  PasswordStrengthMeter,
+} from '@/shared/Components/PasswordInput/ui/password-input';
 import {useRouter} from 'next/navigation';
-const SignUp = () => {
-  const [form, setForm] = useState<SignUpRequestModel>({
-    username: '',
-    email: '',
-    password: '',
+import {useForm} from 'react-hook-form';
+import {z} from 'zod';
+import {zodResolver} from '@hookform/resolvers/zod';
+import {
+  getPasswordStrength,
+  getPasswordValidationErrors,
+  isStrongPassword,
+  PASSWORD_REQUIREMENTS,
+} from '@/entities/user/lib/passwordValidation';
+
+const signupSchema = z
+  .object({
+    username: z.string().trim().min(1, 'Username is required'),
+    email: z
+      .string()
+      .trim()
+      .min(1, 'Email is required')
+      .email('Enter a valid email'),
+    password: z.string().superRefine((password, ctx) => {
+      if (isStrongPassword(password)) {
+        return;
+      }
+
+      ctx.addIssue({
+        code: 'custom',
+        message: getPasswordValidationErrors(password).join('. '),
+      });
+    }),
+    confirmPassword: z.string().min(1, 'Confirm your password'),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'Passwords do not match',
   });
 
+type SignUpFormValues = z.infer<typeof signupSchema>;
+
+const SignUp = () => {
   const router = useRouter();
 
   const {signUp, loaded, error} = useSignUp();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: {errors, isValid},
+  } = useForm<SignUpFormValues>({
+    resolver: zodResolver(signupSchema),
+    mode: 'onChange',
+    defaultValues: {
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
 
-  const handleSubmit = async () => {
-    const response = await signUp(form);
+  const password = watch('password');
+  const passwordStrength = getPasswordStrength(password);
+
+  const onSubmit = async (values: SignUpFormValues) => {
+    const data: SignUpRequestModel = {
+      username: values.username,
+      email: values.email,
+      password: values.password,
+    };
+
+    const response = await signUp(data);
     if (response != null) {
       router.push('/');
     }
   };
 
   const handleCancel = () => {
-    setForm({
-      username: '',
-      email: '',
-      password: '',
-    });
+    reset();
     router.push('/');
   };
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const {name, value} = e.target;
-    setForm(prev => ({...prev, [name]: value}));
-  };
-
-  if (error != null) {
-    return <div>{error}</div>;
-  }
 
   return (
     <Box className={styles.cardContainer}>
-      <Card.Root maxW="sm">
-        <Card.Header>
-          <Card.Title>Sign up</Card.Title>
-          <Card.Description>
-            Fill in the form below to create an account
-          </Card.Description>
-        </Card.Header>
-        <Card.Body>
-          <Stack gap="4" w="full">
-            <Field label="Username">
-              <Input
-                name="username"
-                value={form.username}
-                onChange={handleChange}
-              />
-            </Field>
-            <Field label="Email">
-              <Input name="email" value={form.email} onChange={handleChange} />
-            </Field>
-            <Field label="Password">
-              <PasswordInput
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-              />
-            </Field>
-          </Stack>
-        </Card.Body>
-        <Card.Footer justifyContent="flex-end">
-          <Button variant="outline" onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Button variant="solid" disabled={loaded} onClick={handleSubmit}>
-            {loaded ? 'Signing up...' : 'Sign up'}
-          </Button>
-        </Card.Footer>
-      </Card.Root>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <Card.Root maxW="md">
+          <Card.Header>
+            <Card.Title>Sign up</Card.Title>
+            <Card.Description>
+              Fill in the form below to create an account
+            </Card.Description>
+          </Card.Header>
+          <Card.Body>
+            <Stack gap="4" w="full">
+              <Field
+                label="Username"
+                invalid={Boolean(errors.username)}
+                errorText={errors.username?.message}>
+                <Input autoComplete="username" {...register('username')} />
+              </Field>
+              <Field
+                label="Email"
+                invalid={Boolean(errors.email)}
+                errorText={errors.email?.message}>
+                <Input
+                  type="email"
+                  autoComplete="email"
+                  {...register('email')}
+                />
+              </Field>
+              <Field
+                label="Password"
+                invalid={Boolean(errors.password)}
+                errorText={errors.password?.message}
+                helperText={
+                  password ? (
+                    <Stack gap="2" width="full">
+                      <PasswordStrengthMeter
+                        max={PASSWORD_REQUIREMENTS.length}
+                        value={passwordStrength}
+                      />
+                      <Text textStyle="xs">
+                        Use at least 8 characters with uppercase, lowercase,
+                        number, and special character.
+                      </Text>
+                    </Stack>
+                  ) : null
+                }>
+                <PasswordInput
+                  autoComplete="new-password"
+                  placeholder="Create password"
+                  {...register('password')}
+                />
+              </Field>
+              <Field
+                label="Confirm password"
+                invalid={Boolean(errors.confirmPassword)}
+                errorText={errors.confirmPassword?.message}>
+                <PasswordInput
+                  autoComplete="new-password"
+                  placeholder="Repeat password"
+                  {...register('confirmPassword')}
+                />
+              </Field>
+              {error ? (
+                <Text color="red.500" textStyle="sm">
+                  {error}
+                </Text>
+              ) : null}
+            </Stack>
+          </Card.Body>
+          <Card.Footer justifyContent="flex-end">
+            <Button variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button variant="solid" disabled={loaded || !isValid} type="submit">
+              {loaded ? 'Signing up...' : 'Sign up'}
+            </Button>
+          </Card.Footer>
+        </Card.Root>
+      </form>
     </Box>
   );
 };

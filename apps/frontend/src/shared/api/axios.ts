@@ -12,7 +12,6 @@ export const axiosInstance = axios.create({
 axiosInstance.interceptors.response.use(
   response => response,
   error => {
-    console.error(error.response?.data?.message || 'Ошибка сервера');
     return Promise.reject(error);
   },
 );
@@ -25,7 +24,6 @@ export const axiosMultipartInstance = axios.create({
 axiosMultipartInstance.interceptors.response.use(
   response => response,
   error => {
-    console.error(error.response?.data?.message || 'Ошибка сервера');
     return Promise.reject(error);
   },
 );
