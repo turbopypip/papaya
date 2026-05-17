@@ -20,7 +20,7 @@ func GetThread(c *gin.Context) {
 	}
 
 	var thread models.Thread
-	err = storage.DB.Unscoped().First(&thread, "id = ?", threadID).Error
+	err = storage.DB.Unscoped().Preload("Author").First(&thread, "id = ?", threadID).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Thread not found"})
 		return

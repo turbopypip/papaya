@@ -31,7 +31,7 @@ func GetThreads(c *gin.Context) {
 	offset := (page - 1) * limit
 	var threads []models.Thread
 
-	err = storage.DB.Limit(limit).Offset(offset).Find(&threads).Error
+	err = storage.DB.Preload("Author").Limit(limit).Offset(offset).Find(&threads).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Filed to retrieve threads"})
 		return

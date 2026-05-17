@@ -45,6 +45,11 @@ export interface User {
   UpdatedAt?: string;
 }
 
+export interface PublicUser {
+  ID: string;
+  username: string;
+}
+
 export interface CurrentUserResponse {
   error?: string;
   user?: User;

@@ -49,3 +49,12 @@ type User struct {
 	PasswordHash string    `json:"-" gorm:"index"`
 	RoleId       uuid.UUID `json:"role_id" gorm:"references:Role"`
 }
+
+type PublicUser struct {
+	Id       uuid.UUID `json:"ID" gorm:"column:id;primary_key"`
+	Username string    `json:"username" gorm:"column:username"`
+}
+
+func (PublicUser) TableName() string {
+	return "users"
+}

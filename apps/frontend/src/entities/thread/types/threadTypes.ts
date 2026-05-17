@@ -1,4 +1,5 @@
 import {Attachment} from '@/entities/attachment';
+import {PublicUser} from '@/entities/user/types/userTypes';
 
 export interface Thread {
   ID: string;
@@ -7,6 +8,7 @@ export interface Thread {
   CreatedAt: string;
   UpdatedAt: string;
   user_id: string;
+  author?: PublicUser;
   attachments?: Attachment[];
 }
 

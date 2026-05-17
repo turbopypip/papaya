@@ -3,7 +3,7 @@
 import React, {FC} from 'react';
 import {Tag} from '@/shared/Components/Tag/ui/tag';
 import {useRouter} from 'next/navigation';
-import {Box, Table} from '@chakra-ui/react';
+import {Box, Table, Text} from '@chakra-ui/react';
 import {Thread} from '@/entities/thread';
 
 type Props = {
@@ -41,6 +41,9 @@ const ThreadsTable: FC<Props> = ({threads, loaded, error}) => {
               <Table.ColumnHeader bg="gray.100" color="gray.600" fontWeight="600">
                 Title
               </Table.ColumnHeader>
+              <Table.ColumnHeader bg="gray.100" color="gray.600" fontWeight="600">
+                Author
+              </Table.ColumnHeader>
               <Table.ColumnHeader
                 bg="gray.100"
                 color="gray.600"
@@ -63,6 +66,14 @@ const ThreadsTable: FC<Props> = ({threads, loaded, error}) => {
                   whiteSpace="pre-wrap"
                   overflowWrap="anywhere">
                   {thread.title}
+                </Table.Cell>
+                <Table.Cell
+                  borderBottomWidth={
+                    index === threads.length - 1 ? '0' : undefined
+                  }>
+                  <Text color="gray.600" fontSize="sm">
+                    @{thread.author?.username ?? 'unknown'}
+                  </Text>
                 </Table.Cell>
                 <Table.Cell
                   borderBottomWidth={

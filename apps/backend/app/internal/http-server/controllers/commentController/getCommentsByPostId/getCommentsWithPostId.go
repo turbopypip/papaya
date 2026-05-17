@@ -40,7 +40,8 @@ func GetCommentsByPostId(c *gin.Context) {
 	offset := (page - 1) * limit
 	var comments []models.Comment
 
-	err = storage.DB.Limit(limit).
+	err = storage.DB.Preload("Author").
+		Limit(limit).
 		Offset(offset).
 		Where("post_id = ?", postID).
 		Find(&comments).

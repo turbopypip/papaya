@@ -112,6 +112,11 @@ func UpdateComment(c *gin.Context) {
 	}
 	attachments.CleanupFiles(removedFiles)
 
+	if err := storage.DB.Preload("Author").First(&comment, "id = ?", comment.Id).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve comment"})
+		return
+	}
+
 	comments := []models.Comment{comment}
 	if err := attachments.AttachToComments(storage.DB, comments); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve comment attachments"})

@@ -106,6 +106,10 @@ func UpdatePost(c *gin.Context) {
 	}
 	attachments.CleanupFiles(removedFiles)
 
+	if err := storage.DB.Preload("Author").First(&post, "id = ?", post.Id).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve post"})
+		return
+	}
 	if err := attachments.AttachToPost(storage.DB, &post); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve post attachments"})
 		return

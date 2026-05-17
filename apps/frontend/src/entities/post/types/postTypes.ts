@@ -1,9 +1,11 @@
 import {Attachment} from '@/entities/attachment';
+import {PublicUser} from '@/entities/user/types/userTypes';
 
 export interface Post {
   ID: string;
   content: string;
   user_id: string;
+  author?: PublicUser;
   thread_id: string;
   CreatedAt: string;
   UpdatedAt: string;

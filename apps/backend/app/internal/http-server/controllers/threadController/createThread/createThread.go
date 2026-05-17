@@ -99,6 +99,10 @@ func CreateThread(c *gin.Context) {
 		})
 		return
 	}
+	thread.Author = models.PublicUser{
+		Id:       userData.Id,
+		Username: userData.Username,
+	}
 
 	// Кэшируем новую тему
 	if cache.IsGlobalCacheReady() {

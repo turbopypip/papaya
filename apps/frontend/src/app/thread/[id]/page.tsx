@@ -12,6 +12,7 @@ import {
   Flex,
   IconButton,
   Menu,
+  Text,
 } from '@chakra-ui/react';
 import getFormattedDate from '@/shared/utils/getFormattedDate';
 import {Tag} from '@/shared/Components/Tag/ui/tag';
@@ -44,7 +45,7 @@ import {useValidate} from '@/entities/user/queries/useValidate';
 import {useUpdateThread} from '@/entities/thread/queries/useUpdateThread';
 import {useDeleteThread} from '@/entities/thread/queries/useDeleteThread';
 import {UpdateThreadRequest} from '@/entities/thread/types/threadTypes';
-import {Pencil, Trash2, Check, X, EllipsisVertical} from 'lucide-react';
+import {Pencil, Trash2, Check, X, EllipsisVertical, UserRound} from 'lucide-react';
 import {useRouter} from 'next/navigation';
 import {useGetCurrentUser} from '@/entities/user/queries/useGetCurrentUser';
 
@@ -430,14 +431,20 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
                 </Box>
               </Card.Description>
               <Card.Description mt="2" fontFamily="Roboto, Arial, sans-serif">
-                {isThreadEdited ? (
+                <Flex align="center" gap="3" wrap="wrap">
                   <Flex align="center" as="span" gap="1">
-                    <Pencil size={14} />
-                    {getFormattedDate(thread.UpdatedAt)}
+                    <UserRound size={14} />
+                    <Text as="span">@{thread.author?.username ?? 'unknown'}</Text>
                   </Flex>
-                ) : (
-                  getFormattedDate(thread.CreatedAt)
-                )}
+                  {isThreadEdited ? (
+                    <Flex align="center" as="span" gap="1">
+                      <Pencil size={14} />
+                      {getFormattedDate(thread.UpdatedAt)}
+                    </Flex>
+                  ) : (
+                    getFormattedDate(thread.CreatedAt)
+                  )}
+                </Flex>
               </Card.Description>
               <AttachmentGrid attachments={thread.attachments} />
               {deleteThreadError ? (

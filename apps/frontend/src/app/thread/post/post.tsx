@@ -15,7 +15,7 @@ import {
 } from '@chakra-ui/react';
 import DOMPurify from 'dompurify';
 import {FaPlus} from 'react-icons/fa';
-import {EllipsisVertical, Pencil, Trash2} from 'lucide-react';
+import {EllipsisVertical, Pencil, Trash2, UserRound} from 'lucide-react';
 import getFormattedDate from '@/shared/utils/getFormattedDate';
 import {
   TimelineConnector,
@@ -88,6 +88,13 @@ const LikeControl = ({
     </Flex>
   );
 };
+
+const AuthorMeta = ({username}: {username?: string}) => (
+  <Flex align="center" as="span" gap="1">
+    <UserRound size={14} />
+    <Text as="span">@{username ?? 'unknown'}</Text>
+  </Flex>
+);
 
 const CommentItem = ({
   comment,
@@ -174,14 +181,17 @@ const CommentItem = ({
       <TimelineContent>
         <Flex align="flex-start" gap="3" justify="space-between">
           <TimelineDescription fontFamily="Roboto, Arial, sans-serif">
-            {isEdited ? (
-              <Flex align="center" as="span" gap="1">
-                <Pencil size={14} />
-                {getFormattedDate(comment.UpdatedAt)}
-              </Flex>
-            ) : (
-              getFormattedDate(comment.CreatedAt)
-            )}
+            <Flex align="center" gap="3" wrap="wrap">
+              <AuthorMeta username={comment.author?.username} />
+              {isEdited ? (
+                <Flex align="center" as="span" gap="1">
+                  <Pencil size={14} />
+                  {getFormattedDate(comment.UpdatedAt)}
+                </Flex>
+              ) : (
+                getFormattedDate(comment.CreatedAt)
+              )}
+            </Flex>
           </TimelineDescription>
           {canManageComment ? (
             <Menu.Root
@@ -449,8 +459,10 @@ const Post: FC<Props> = ({post, currentUser}) => {
           alignItems="center"
           display="flex"
           gap="3"
+          flexWrap="wrap"
           mt="2"
           fontFamily="Roboto, Arial, sans-serif">
+          <AuthorMeta username={post.author?.username} />
           {isEdited ? (
             <Flex align="center" as="span" gap="1">
               <Pencil size={14} />

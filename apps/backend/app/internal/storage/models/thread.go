@@ -12,5 +12,6 @@ type Thread struct {
 	Title       string         `json:"title" gorm:"index;unique"`
 	Categories  pq.StringArray `json:"categories" gorm:"type:text[]"`
 	UserId      uuid.UUID      `json:"user_id" gorm:"references:User"`
+	Author      PublicUser     `json:"author" gorm:"foreignKey:UserId;references:Id"`
 	Attachments []Attachment   `json:"attachments" gorm:"-"`
 }

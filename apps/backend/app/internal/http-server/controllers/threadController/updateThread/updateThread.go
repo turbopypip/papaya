@@ -114,6 +114,10 @@ func UpdateThread(c *gin.Context) {
 	}
 	attachments.CleanupFiles(removedFiles)
 
+	if err := storage.DB.Preload("Author").First(&thread, "id = ?", thread.Id).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve thread"})
+		return
+	}
 	if err := attachments.AttachToThread(storage.DB, &thread); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve thread attachments"})
 		return

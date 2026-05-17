@@ -97,6 +97,10 @@ func CreatePost(c *gin.Context) {
 		})
 		return
 	}
+	post.Author = models.PublicUser{
+		Id:       userData.Id,
+		Username: userData.Username,
+	}
 
 	if cache.IsGlobalCacheReady() {
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)

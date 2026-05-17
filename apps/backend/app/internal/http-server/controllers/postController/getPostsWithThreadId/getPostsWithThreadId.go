@@ -40,7 +40,8 @@ func GetPostsWithThreadId(c *gin.Context) {
 	offset := (page - 1) * limit
 	var posts []models.Post
 
-	err = storage.DB.Limit(limit).
+	err = storage.DB.Preload("Author").
+		Limit(limit).
 		Offset(offset).
 		Where("thread_id = ?", threadID).
 		Find(&posts).

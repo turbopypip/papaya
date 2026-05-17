@@ -93,6 +93,10 @@ func CreateComment(c *gin.Context) {
 		})
 		return
 	}
+	comment.Author = models.PublicUser{
+		Id:       userData.Id,
+		Username: userData.Username,
+	}
 
 	var post models.Post
 	if err := storage.DB.First(&post, "id = ?", body.PostId).Error; err == nil {
