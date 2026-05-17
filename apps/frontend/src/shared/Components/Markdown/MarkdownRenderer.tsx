@@ -1,5 +1,7 @@
 import React, {ReactNode} from 'react';
 import {Box} from '@chakra-ui/react';
+import {common, createLowlight} from 'lowlight';
+import type {Element, Root, RootContent} from 'hast';
 import styles from './MarkdownRenderer.module.css';
 
 type Block =
@@ -19,6 +21,7 @@ type Props = {
 };
 
 const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
+const lowlight = createLowlight(common);
 
 const isSafeUrl = (url: string) => {
   const trimmedUrl = url.trim();
@@ -222,6 +225,67 @@ const parseBlocks = (content: string): Block[] => {
   return blocks;
 };
 
+const normalizeLanguage = (language?: string) =>
+  language?.trim().split(/\s+/)[0].toLowerCase();
+
+const highlightCode = (content: string, language?: string): Root => {
+  const normalizedLanguage = normalizeLanguage(language);
+
+  try {
+    if (normalizedLanguage && lowlight.registered(normalizedLanguage)) {
+      return lowlight.highlight(normalizedLanguage, content);
+    }
+
+    return lowlight.highlightAuto(content);
+  } catch {
+    return {
+      type: 'root',
+      children: [{type: 'text', value: content}],
+    };
+  }
+};
+
+const getClassName = (node: Element) => {
+  const className = node.properties.className;
+
+  if (Array.isArray(className)) {
+    return className.filter(Boolean).join(' ');
+  }
+
+  if (typeof className === 'string') {
+    return className;
+  }
+
+  return undefined;
+};
+
+const renderHighlightedNode = (
+  node: RootContent,
+  keyPrefix: string,
+): ReactNode => {
+  if (node.type === 'text') {
+    return node.value;
+  }
+
+  if (node.type !== 'element') {
+    return null;
+  }
+
+  const children = node.children.map((child, index) =>
+    renderHighlightedNode(child, `${keyPrefix}-${index}`),
+  );
+
+  if (node.tagName !== 'span') {
+    return <React.Fragment key={keyPrefix}>{children}</React.Fragment>;
+  }
+
+  return (
+    <span className={getClassName(node)} key={keyPrefix}>
+      {children}
+    </span>
+  );
+};
+
 export const MarkdownRenderer = ({
   content,
   emptyText = 'Nothing to preview yet',
@@ -236,12 +300,18 @@ export const MarkdownRenderer = ({
     <Box className={styles.markdown}>
       {blocks.map((block, index) => {
         if (block.type === 'code') {
+          const highlightedCode = highlightCode(block.content, block.language);
+
           return (
             <pre className={styles.codeBlock} key={`block-${index}`}>
               {block.language ? (
                 <span className={styles.codeLanguage}>{block.language}</span>
               ) : null}
-              <code>{block.content}</code>
+              <code>
+                {highlightedCode.children.map((child, childIndex) =>
+                  renderHighlightedNode(child, `block-${index}-${childIndex}`),
+                )}
+              </code>
             </pre>
           );
         }

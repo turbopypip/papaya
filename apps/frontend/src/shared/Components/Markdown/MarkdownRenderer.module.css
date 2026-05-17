@@ -59,6 +59,59 @@
   text-transform: uppercase;
 }
 
+.codeBlock :global(.hljs-keyword),
+.codeBlock :global(.hljs-selector-tag),
+.codeBlock :global(.hljs-built_in),
+.codeBlock :global(.hljs-name),
+.codeBlock :global(.hljs-tag) {
+  color: #93c5fd;
+}
+
+.codeBlock :global(.hljs-string),
+.codeBlock :global(.hljs-title),
+.codeBlock :global(.hljs-section),
+.codeBlock :global(.hljs-attribute),
+.codeBlock :global(.hljs-literal),
+.codeBlock :global(.hljs-template-tag),
+.codeBlock :global(.hljs-template-variable),
+.codeBlock :global(.hljs-type) {
+  color: #86efac;
+}
+
+.codeBlock :global(.hljs-number),
+.codeBlock :global(.hljs-symbol),
+.codeBlock :global(.hljs-bullet),
+.codeBlock :global(.hljs-variable) {
+  color: #fbbf24;
+}
+
+.codeBlock :global(.hljs-comment),
+.codeBlock :global(.hljs-quote),
+.codeBlock :global(.hljs-deletion) {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.codeBlock :global(.hljs-regexp),
+.codeBlock :global(.hljs-link),
+.codeBlock :global(.hljs-meta),
+.codeBlock :global(.hljs-selector-attr),
+.codeBlock :global(.hljs-selector-pseudo) {
+  color: #f0abfc;
+}
+
+.codeBlock :global(.hljs-addition) {
+  color: #bef264;
+}
+
+.codeBlock :global(.hljs-emphasis) {
+  font-style: italic;
+}
+
+.codeBlock :global(.hljs-strong) {
+  font-weight: 700;
+}
+
 .emptyPreview {
   color: #64748b;
 }
