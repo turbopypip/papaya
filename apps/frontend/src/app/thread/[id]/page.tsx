@@ -45,9 +45,17 @@ import {useValidate} from '@/entities/user/queries/useValidate';
 import {useUpdateThread} from '@/entities/thread/queries/useUpdateThread';
 import {useDeleteThread} from '@/entities/thread/queries/useDeleteThread';
 import {UpdateThreadRequest} from '@/entities/thread/types/threadTypes';
-import {Pencil, Trash2, Check, X, EllipsisVertical, UserRound} from 'lucide-react';
+import {
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  EllipsisVertical,
+  UserRound,
+} from 'lucide-react';
 import {useRouter} from 'next/navigation';
 import {useGetCurrentUser} from '@/entities/user/queries/useGetCurrentUser';
+import {MarkdownEditor} from '@/shared/Components/Markdown';
 
 const ThreadPage = ({params}: {params: {id: string}}) => {
   const router = useRouter();
@@ -62,10 +70,11 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
     loaded: threadLoaded,
     error: threadError,
   } = useGetThread(params.id, canFetchThread);
-  const {posts, loaded: postsLoaded, error: postsError} = useGetPosts(
-    params.id,
-    canFetchThread,
-  );
+  const {
+    posts,
+    loaded: postsLoaded,
+    error: postsError,
+  } = useGetPosts(params.id, canFetchThread);
   const {user: currentUser} = useGetCurrentUser(canFetchThread);
 
   const [postForm, setPostForm] = useState<CreatePostRequest>({
@@ -83,8 +92,11 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
   });
   const [threadFiles, setThreadFiles] = useState<File[]>([]);
 
-  const {createPost, loading: creatingPost, error: createPostError} =
-    useCreatePost(params.id);
+  const {
+    createPost,
+    loading: creatingPost,
+    error: createPostError,
+  } = useCreatePost(params.id);
   const {
     updateThread,
     loading: updatingThread,
@@ -114,13 +126,6 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
     setThreadFiles([]);
     setIsEditingThread(false);
   }, [thread]);
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
-    const {name, value} = e.target;
-    setPostForm(prev => ({...prev, [name]: value}));
-  };
 
   const handleCreatePost = async () => {
     await createPost({...postForm, attachments: postFiles});
@@ -251,7 +256,8 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
   const canManageThread = canEditThread || canDeleteThread;
   const isThreadEdited =
     thread.UpdatedAt &&
-    new Date(thread.UpdatedAt).getTime() - new Date(thread.CreatedAt).getTime() >
+    new Date(thread.UpdatedAt).getTime() -
+      new Date(thread.CreatedAt).getTime() >
       1000;
 
   return (
@@ -286,11 +292,10 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
             <DrawerTitle>Enter a post</DrawerTitle>
           </DrawerHeader>
           <DrawerBody>
-            <Textarea
-              placeholder="Your important post"
-              name="content"
+            <MarkdownEditor
+              placeholder="Share code, context, and what you tried"
               value={postForm.content}
-              onChange={handleChange}
+              onChange={content => setPostForm(prev => ({...prev, content}))}
             />
             <AttachmentPicker
               files={postFiles}
@@ -307,9 +312,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
             <DrawerActionTrigger asChild>
               <Button variant="outline">Cancel</Button>
             </DrawerActionTrigger>
-            <Button
-              disabled={creatingPost}
-              onClick={handleCreatePost}>
+            <Button disabled={creatingPost} onClick={handleCreatePost}>
               {creatingPost ? 'Publishing...' : 'Publish'}
             </Button>
           </DrawerFooter>
@@ -358,9 +361,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
                   <X size={16} />
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleUpdateThread}
-                  disabled={updatingThread}>
+                <Button onClick={handleUpdateThread} disabled={updatingThread}>
                   <Check size={16} />
                   {updatingThread ? 'Saving...' : 'Save'}
                 </Button>
@@ -368,7 +369,10 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
             </Box>
           ) : (
             <>
-              <Flex justifyContent="space-between" alignItems="flex-start" gap="3">
+              <Flex
+                justifyContent="space-between"
+                alignItems="flex-start"
+                gap="3">
                 <Card.Title
                   mt="2"
                   fontFamily="Roboto, Arial, sans-serif"
@@ -434,7 +438,9 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
                 <Flex align="center" gap="3" wrap="wrap">
                   <Flex align="center" as="span" gap="1">
                     <UserRound size={14} />
-                    <Text as="span">@{thread.author?.username ?? 'unknown'}</Text>
+                    <Text as="span">
+                      @{thread.author?.username ?? 'unknown'}
+                    </Text>
                   </Flex>
                   {isThreadEdited ? (
                     <Flex align="center" as="span" gap="1">
@@ -456,9 +462,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
           )}
         </Card.Body>
       </Card.Root>
-      {createPostError ? (
-        <Box color="red.500">{createPostError}</Box>
-      ) : null}
+      {createPostError ? <Box color="red.500">{createPostError}</Box> : null}
       {postsLoaded ? (
         <Box>Loading posts...</Box>
       ) : postsError ? (
