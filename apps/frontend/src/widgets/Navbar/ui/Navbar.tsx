@@ -56,18 +56,18 @@ const Navbar = () => {
         {isAuthenticated ? (
           <Flex gap={5} align="center">
             <Button onClick={handleLogOut} disabled={isLoggingOut}>
-              {isLoggingOut ? 'Logging out...' : 'Log out'}
+              {isLoggingOut ? 'Выходим...' : 'Выйти'}
             </Button>
           </Flex>
         ) : (
           <Flex gap={5} align="center">
             <Button onClick={() => handleClickRouting('signup')}>
-              Sign up
+              Регистрация
             </Button>
-            <Button onClick={() => handleClickRouting('login')}>Log in</Button>
+            <Button onClick={() => handleClickRouting('login')}>Войти</Button>
             {IS_DEV_MODE ? (
               <Button onClick={handleDevLogIn} disabled={isDevLoggingIn}>
-                {isDevLoggingIn ? 'Logging in...' : 'Log in as dev user'}
+                {isDevLoggingIn ? 'Входим...' : 'Войти как dev-пользователь'}
               </Button>
             ) : null}
           </Flex>

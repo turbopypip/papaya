@@ -6,6 +6,7 @@ import (
 	"github.com/gofrs/uuid"
 	"gorm.io/gorm"
 	"net/http"
+	"papaya-backend/internal/analytics"
 	"papaya-backend/internal/http-server/controllers/likeController/likeState"
 	"papaya-backend/internal/realtime"
 	"papaya-backend/internal/storage"
@@ -21,8 +22,7 @@ func CreateLike(c *gin.Context) {
 	// check if body exists
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Failed to get body",
-			"details": err.Error(),
+			"error": "Не удалось прочитать данные лайка",
 		})
 		return
 	}
@@ -30,7 +30,7 @@ func CreateLike(c *gin.Context) {
 	// check if LikableType equals "post" or "comment"
 	if !likeState.ValidateLikableType(body.LikableType) {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid likable type",
+			"error": "Некорректный тип объекта для лайка",
 		})
 		return
 	}
@@ -39,8 +39,7 @@ func CreateLike(c *gin.Context) {
 	likeId, err := uuid.NewV6()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":       err.Error(),
-			"description": "Failed to generate thread id",
+			"error": "Не удалось создать идентификатор лайка",
 		})
 		return
 	}
@@ -58,19 +57,19 @@ func CreateLike(c *gin.Context) {
 	if err == nil {
 		state, loadErr := likeState.Load(body.LikableID, body.LikableType, userData.Id)
 		if loadErr != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load likes"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось загрузить лайки"})
 			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"message": "already liked",
+			"message": "Лайк уже поставлен",
 			"like":    existing,
 			"state":   state,
 		})
 		return
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to check like"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось проверить лайк"})
 		return
 	}
 
@@ -86,14 +85,14 @@ func CreateLike(c *gin.Context) {
 	result := storage.DB.Create(&like)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to create like",
+			"message": "Не удалось поставить лайк",
 		})
 		return
 	}
 
 	state, err := likeState.Load(body.LikableID, body.LikableType, userData.Id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load likes"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось загрузить лайки"})
 		return
 	}
 
@@ -105,10 +104,27 @@ func CreateLike(c *gin.Context) {
 			LikableID:   body.LikableID.String(),
 			Count:       state.Count,
 		})
+		eventType := analytics.EventPostLiked
+		entityType := analytics.EntityPost
+		if body.LikableType == models.LikableComment {
+			eventType = analytics.EventCommentLiked
+			entityType = analytics.EntityComment
+		}
+		analytics.Record(c.Request.Context(), analytics.Event{
+			UserID:     userData.Id,
+			EventType:  eventType,
+			EntityType: entityType,
+			EntityID:   body.LikableID,
+			ThreadID:   threadID,
+			Metadata: map[string]any{
+				"likable_type": body.LikableType,
+				"likes_count":  state.Count,
+			},
+		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "created like",
+		"message": "Лайк поставлен",
 		"like":    like,
 		"state":   state,
 	})

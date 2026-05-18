@@ -15,7 +15,7 @@ type Impl struct{}
 func (r Impl) SubscribeThread(c *gin.Context) {
 	threadID, err := uuid.FromString(c.Param("threadId"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid thread id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный идентификатор треда"})
 		return
 	}
 

@@ -17,12 +17,12 @@ func DeleteLike(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body", "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Не удалось прочитать данные лайка"})
 		return
 	}
 
 	if !likeState.ValidateLikableType(body.LikableType) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid likable type"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный тип объекта для лайка"})
 		return
 	}
 
@@ -37,19 +37,19 @@ func DeleteLike(c *gin.Context) {
 		Delete(&models.Like{})
 
 	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete like"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось убрать лайк"})
 		return
 	}
 
 	state, err := likeState.Load(body.LikableID, body.LikableType, userData.Id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load likes"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось загрузить лайки"})
 		return
 	}
 
-	message := "Like deleted"
+	message := "Лайк убран"
 	if result.RowsAffected == 0 {
-		message = "Like not found"
+		message = "Лайк не найден"
 	} else if threadID, ok, err := likeState.ResolveThreadID(body.LikableID, body.LikableType); err == nil && ok {
 		realtime.DefaultHub.Publish(threadID.String(), realtime.Event{
 			Type:        realtime.EventLikeDeleted,

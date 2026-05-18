@@ -10,3 +10,10 @@ redis:
   address: "redis:6379"
   password: ""
   db: 0
+
+clickhouse:
+  enabled: true
+  address: "clickhouse:9000"
+  database: "papaya_analytics"
+  username: "papaya"
+  password: "papaya_analytics_password"

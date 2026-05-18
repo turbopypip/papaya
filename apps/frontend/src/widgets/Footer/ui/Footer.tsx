@@ -9,7 +9,7 @@ const Footer = () => {
       height="60px"
       fontFamily="Faculty Glyphic">
       <Flex justifyContent="space-between" alignItems="center" height="100%">
-        <p>Copyright (c) Papaya 2024</p>
+        <p>Papaya 2024</p>
         <Box>
           <Link href="https://github.com/Project-practice-MEPHI-2024">
             <FaLink />

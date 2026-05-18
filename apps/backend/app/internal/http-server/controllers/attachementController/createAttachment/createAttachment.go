@@ -28,13 +28,13 @@ func CreateAttachment(c *gin.Context) {
 	if ownerType != attachments.OwnerTypeThread &&
 		ownerType != attachments.OwnerTypePost &&
 		ownerType != attachments.OwnerTypeComment {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid owner_type"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный тип владельца вложения"})
 		return
 	}
 
 	ownerID, err := uuid.FromString(ownerIDValue)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid owner_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный идентификатор владельца вложения"})
 		return
 	}
 
@@ -57,16 +57,16 @@ func CreateAttachment(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create attachment"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать вложение"})
 		return
 	}
 	if len(createdAttachments) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "File is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Прикрепите файл"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":     "created attachment",
+		"message":     "Вложение создано",
 		"attachments": createdAttachments,
 	})
 }
@@ -102,15 +102,15 @@ func canAttachToOwner(c *gin.Context, ownerType string, ownerID uuid.UUID) bool 
 		}
 	}
 
-	rbac.AbortForbidden(c, "You cannot attach files to this content")
+	rbac.AbortForbidden(c, "У вас нет прав прикреплять файлы к этому содержимому")
 	return false
 }
 
 func abortMissingOwner(c *gin.Context, err error) {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Attachment owner not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Содержимое для вложения не найдено"})
 		return
 	}
 
-	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve attachment owner"})
+	c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить содержимое для вложения"})
 }

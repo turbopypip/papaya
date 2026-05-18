@@ -9,6 +9,11 @@ services:
       APP_ENV: prod
       ENV: prod
       LOCAL_CONFIG_PATH: /config/prod.yaml
+      CLICKHOUSE_ENABLED: ${CLICKHOUSE_ENABLED:-true}
+      CLICKHOUSE_ADDRESS: ${CLICKHOUSE_ADDRESS:-clickhouse:9000}
+      CLICKHOUSE_DB: papaya_analytics
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-papaya}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-papaya_analytics_password}
     volumes:
       - ./apps/backend/app/config:/config:ro
       - ./apps/backend/uploads:/uploads
@@ -19,6 +24,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      clickhouse-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8888/api/v1/ping | grep -q pong"]
       interval: 10s
@@ -78,6 +87,41 @@ services:
       retries: 5
       start_period: 30s
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8-alpine
+    environment:
+      CLICKHOUSE_DB: papaya_analytics
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-papaya}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-papaya_analytics_password}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --host 127.0.0.1 --user $${CLICKHOUSE_USER} --password $${CLICKHOUSE_PASSWORD} --query 'SELECT 1' >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  clickhouse-migrate:
+    image: migrate/migrate:v4.18.3
+    volumes:
+      - ./apps/backend/app/migrations/clickhouse:/migrations:ro
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    command:
+      [
+        "-path=/migrations",
+        "-database=clickhouse://clickhouse:9000?username=${CLICKHOUSE_USER:-papaya}&password=${CLICKHOUSE_PASSWORD:-papaya_analytics_password}",
+        "up"
+      ]
+    restart: "no"
+
 volumes:
   pgdata:
   redis_data:
+  clickhouse_data:

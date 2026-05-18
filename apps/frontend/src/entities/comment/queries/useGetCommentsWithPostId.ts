@@ -19,7 +19,8 @@ export const useGetCommentsWithPostId = (
     loaded: query.isLoading,
     error:
       query.data?.error ??
-      ((query.error as any)?.response?.data?.message ||
+      ((query.error as any)?.response?.data?.error ||
+        (query.error as any)?.response?.data?.message ||
         (query.error ? 'Ошибка получения комментариев' : null)),
     fetchComments: query.refetch,
     refetch: query.refetch,

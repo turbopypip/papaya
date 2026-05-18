@@ -97,7 +97,7 @@ const LikeControl = ({
 const AuthorMeta = ({username}: {username?: string}) => (
   <Flex align="center" as="span" gap="1">
     <UserRound size={14} />
-    <Text as="span">@{username ?? 'unknown'}</Text>
+    <Text as="span">@{username ?? 'неизвестно'}</Text>
   </Flex>
 );
 
@@ -204,7 +204,7 @@ const CommentItem = ({
               onOpenChange={details => setActionMenuOpen(details.open)}>
               <Menu.Trigger asChild>
                 <IconButton
-                  aria-label="Comment actions"
+                  aria-label="Действия с комментарием"
                   onClick={() => setActionMenuOpen(open => !open)}
                   onMouseEnter={() => setActionMenuOpen(true)}
                   size="xs"
@@ -418,7 +418,7 @@ const Post: FC<Props> = ({post, currentUser}) => {
               onOpenChange={details => setActionMenuOpen(details.open)}>
               <Menu.Trigger asChild>
                 <IconButton
-                  aria-label="Post actions"
+                  aria-label="Действия с постом"
                   onClick={() => setActionMenuOpen(open => !open)}
                   onMouseEnter={() => setActionMenuOpen(true)}
                   size="sm"
@@ -532,7 +532,7 @@ const Post: FC<Props> = ({post, currentUser}) => {
             onOpenChange={() => setOpened(o => !o)}>
             <Collapsible.Trigger>
               <Button variant="outline" margin="1.5rem 0 1.5rem 0">
-                {opened ? 'Close' : 'View comments'}
+                {opened ? 'Скрыть комментарии' : 'Показать комментарии'}
               </Button>
             </Collapsible.Trigger>
 
@@ -551,16 +551,16 @@ const Post: FC<Props> = ({post, currentUser}) => {
                       size="sm"
                       margin="1.5em 0 1.5em 0">
                       <FaPlus style={{marginRight: '0.5rem'}} />
-                      Write a comment
+                      Написать комментарий
                     </Button>
                   </DrawerTrigger>
                   <DrawerContent roundedTop={'l3'}>
                     <DrawerHeader>
-                      <DrawerTitle>Enter a comment</DrawerTitle>
+                      <DrawerTitle>Новый комментарий</DrawerTitle>
                     </DrawerHeader>
                     <DrawerBody>
                       <Textarea
-                        placeholder="Your important comment"
+                        placeholder="Текст комментария"
                         name="content"
                         value={commentForm.content}
                         onChange={handleChange}
@@ -578,12 +578,12 @@ const Post: FC<Props> = ({post, currentUser}) => {
                     </DrawerBody>
                     <DrawerFooter>
                       <DrawerActionTrigger asChild>
-                        <Button variant="outline">Cancel</Button>
+                        <Button variant="outline">Отмена</Button>
                       </DrawerActionTrigger>
                       <Button
                         disabled={creatingComment}
                         onClick={handleCreateComment}>
-                        {creatingComment ? 'Publishing...' : 'Publish'}
+                        {creatingComment ? 'Публикуем...' : 'Опубликовать'}
                       </Button>
                     </DrawerFooter>
                     <DrawerCloseTrigger />
@@ -591,11 +591,11 @@ const Post: FC<Props> = ({post, currentUser}) => {
                 </DrawerRoot>
 
                 {commentsLoaded ? (
-                  <StatePanel title="Loading comments">
-                    Replies for this post are being loaded.
+                  <StatePanel title="Загружаем комментарии">
+                    Загружаем ответы к этому посту.
                   </StatePanel>
                 ) : commentsError ? (
-                  <StatePanel title="Could not load comments" tone="danger">
+                  <StatePanel title="Не удалось загрузить комментарии" tone="danger">
                     {commentsError}
                   </StatePanel>
                 ) : comments.length > 0 ? (
@@ -607,8 +607,8 @@ const Post: FC<Props> = ({post, currentUser}) => {
                     />
                   ))
                 ) : (
-                  <StatePanel title="No comments yet">
-                    Start the conversation under this post.
+                  <StatePanel title="Пока нет комментариев">
+                    Начните обсуждение под этим постом.
                   </StatePanel>
                 )}
               </TimelineRoot>

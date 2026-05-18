@@ -29,7 +29,8 @@ export const useGetPosts = (threadId: string, enabled = true) => {
     hasMore: query.hasNextPage,
     error:
       query.data?.pages.find(page => page.error)?.error ??
-      ((query.error as any)?.response?.data?.message ||
+      ((query.error as any)?.response?.data?.error ||
+        (query.error as any)?.response?.data?.message ||
         (query.error ? 'Ошибка получения постов' : null)),
     loadMore: query.fetchNextPage,
     fetchPosts: query.refetch,

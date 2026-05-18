@@ -22,12 +22,12 @@ import {
 
 const signupSchema = z
   .object({
-    username: z.string().trim().min(1, 'Username is required'),
+    username: z.string().trim().min(1, 'Введите имя пользователя'),
     email: z
       .string()
       .trim()
-      .min(1, 'Email is required')
-      .email('Enter a valid email'),
+      .min(1, 'Введите email')
+      .email('Введите корректный email'),
     password: z.string().superRefine((password, ctx) => {
       if (isStrongPassword(password)) {
         return;
@@ -38,11 +38,11 @@ const signupSchema = z
         message: getPasswordValidationErrors(password).join('. '),
       });
     }),
-    confirmPassword: z.string().min(1, 'Confirm your password'),
+    confirmPassword: z.string().min(1, 'Повторите пароль'),
   })
   .refine(data => data.password === data.confirmPassword, {
     path: ['confirmPassword'],
-    message: 'Passwords do not match',
+    message: 'Пароли не совпадают',
   });
 
 type SignUpFormValues = z.infer<typeof signupSchema>;
@@ -94,15 +94,15 @@ const SignUp = () => {
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card.Root maxW="md">
           <Card.Header>
-            <Card.Title>Sign up</Card.Title>
+            <Card.Title>Регистрация</Card.Title>
             <Card.Description>
-              Fill in the form below to create an account
+              Заполните форму, чтобы создать аккаунт
             </Card.Description>
           </Card.Header>
           <Card.Body>
             <Stack gap="4" w="full">
               <Field
-                label="Username"
+                label="Имя пользователя"
                 invalid={Boolean(errors.username)}
                 errorText={errors.username?.message}>
                 <Input autoComplete="username" {...register('username')} />
@@ -118,7 +118,7 @@ const SignUp = () => {
                 />
               </Field>
               <Field
-                label="Password"
+                label="Пароль"
                 invalid={Boolean(errors.password)}
                 errorText={errors.password?.message}
                 helperText={
@@ -129,25 +129,25 @@ const SignUp = () => {
                         value={passwordStrength}
                       />
                       <Text textStyle="xs">
-                        Use at least 8 characters with uppercase, lowercase,
-                        number, and special character.
+                        Используйте минимум 8 символов: строчную и заглавную
+                        латинские буквы, цифру и специальный символ.
                       </Text>
                     </Stack>
                   ) : null
                 }>
                 <PasswordInput
                   autoComplete="new-password"
-                  placeholder="Create password"
+                  placeholder="Придумайте пароль"
                   {...register('password')}
                 />
               </Field>
               <Field
-                label="Confirm password"
+                label="Повторите пароль"
                 invalid={Boolean(errors.confirmPassword)}
                 errorText={errors.confirmPassword?.message}>
                 <PasswordInput
                   autoComplete="new-password"
-                  placeholder="Repeat password"
+                  placeholder="Повторите пароль"
                   {...register('confirmPassword')}
                 />
               </Field>
@@ -160,10 +160,10 @@ const SignUp = () => {
           </Card.Body>
           <Card.Footer justifyContent="flex-end">
             <Button variant="outline" onClick={handleCancel}>
-              Cancel
+              Отмена
             </Button>
             <Button variant="solid" disabled={loaded || !isValid} type="submit">
-              {loaded ? 'Signing up...' : 'Sign up'}
+              {loaded ? 'Регистрируем...' : 'Зарегистрироваться'}
             </Button>
           </Card.Footer>
         </Card.Root>

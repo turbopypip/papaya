@@ -59,6 +59,7 @@ import {useGetCurrentUser} from '@/entities/user/queries/useGetCurrentUser';
 import {MarkdownEditor} from '@/shared/Components/Markdown';
 import {StatePanel} from '@/shared/Components/StatePanel';
 import {useSearchPosts} from '@/entities/post/queries/useSearchPosts';
+import {recordThreadView} from '@/entities/thread/api/recordThreadView';
 
 const ThreadPage = ({params}: {params: {id: string}}) => {
   const router = useRouter();
@@ -106,6 +107,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
     categories: [],
   });
   const [threadFiles, setThreadFiles] = useState<File[]>([]);
+  const trackedThreadViewRef = useRef<string | null>(null);
 
   const {
     createPost,
@@ -141,6 +143,17 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
     setThreadFiles([]);
     setIsEditingThread(false);
   }, [thread]);
+
+  useEffect(() => {
+    if (!canFetchThread || !thread || trackedThreadViewRef.current === thread.ID) {
+      return;
+    }
+
+    trackedThreadViewRef.current = thread.ID;
+    void recordThreadView(thread.ID).catch(() => {
+      trackedThreadViewRef.current = null;
+    });
+  }, [canFetchThread, thread]);
 
   useEffect(() => {
     const target = postsLoadMoreRef.current;
@@ -254,8 +267,8 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
   if (isAuthenticated === null) {
     return (
       <Container>
-        <StatePanel title="Loading session">
-          Checking access before opening the thread.
+        <StatePanel title="Загружаем сессию">
+          Проверяем доступ перед открытием треда.
         </StatePanel>
       </Container>
     );
@@ -264,8 +277,8 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
   if (!isAuthenticated) {
     return (
       <Container>
-        <StatePanel title="You are not logged in">
-          Sign in to view discussions.
+        <StatePanel title="Вы не вошли в аккаунт">
+          Войдите, чтобы смотреть обсуждения.
         </StatePanel>
       </Container>
     );
@@ -274,8 +287,8 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
   if (threadLoaded) {
     return (
       <Container>
-        <StatePanel title="Loading thread">
-          Pulling the latest thread details.
+        <StatePanel title="Загружаем тред">
+          Получаем актуальные данные треда.
         </StatePanel>
       </Container>
     );
@@ -284,7 +297,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
   if (threadError) {
     return (
       <Container>
-        <StatePanel title="Could not load thread" tone="danger">
+        <StatePanel title="Не удалось загрузить тред" tone="danger">
           {threadError}
         </StatePanel>
       </Container>
@@ -296,7 +309,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
       <Container>
         <Card.Root marginTop="2rem">
           <Card.Body gap="2" fontFamily="Roboto, Arial, sans-serif">
-            <Card.Title>Тред удален</Card.Title>
+            <Card.Title>Тред удалён</Card.Title>
             <Card.Description>
               Этот тред был удален {getFormattedDate(deletedThread.deleted_at)}.
             </Card.Description>
@@ -309,8 +322,8 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
   if (thread == null) {
     return (
       <Container>
-        <StatePanel title="Thread not found">
-          It may have been removed or the link may be outdated.
+        <StatePanel title="Тред не найден">
+          Возможно, он удалён или ссылка устарела.
         </StatePanel>
       </Container>
     );
@@ -348,7 +361,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
         marginTop="2rem"
         fontFamily="Faculty Glyphic">
         <Link href="/" fontSize="18px">
-          Threads
+          Треды
         </Link>
         <BreadcrumbCurrentLink
           fontSize="18px"
@@ -365,16 +378,16 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
         <DrawerTrigger asChild>
           <Button variant="outline" size="sm" margin="1.5em 0 1.5em 0">
             <FaPlus />
-            Create new post
+            Создать пост
           </Button>
         </DrawerTrigger>
         <DrawerContent roundedTop={'l3'}>
           <DrawerHeader>
-            <DrawerTitle>Enter a post</DrawerTitle>
+            <DrawerTitle>Новый пост</DrawerTitle>
           </DrawerHeader>
           <DrawerBody>
             <MarkdownEditor
-              placeholder="Share code, context, and what you tried"
+              placeholder="Поделитесь кодом, контекстом и тем, что уже пробовали"
               value={postForm.content}
               onChange={content => setPostForm(prev => ({...prev, content}))}
             />
@@ -391,10 +404,10 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
           </DrawerBody>
           <DrawerFooter>
             <DrawerActionTrigger asChild>
-              <Button variant="outline">Cancel</Button>
+              <Button variant="outline">Отмена</Button>
             </DrawerActionTrigger>
             <Button disabled={creatingPost} onClick={handleCreatePost}>
-              {creatingPost ? 'Publishing...' : 'Publish'}
+              {creatingPost ? 'Публикуем...' : 'Опубликовать'}
             </Button>
           </DrawerFooter>
           <DrawerCloseTrigger />
@@ -425,7 +438,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
               </Flex>
               <Input
                 disabled={updatingThread}
-                placeholder="Enter category and press Enter"
+                placeholder="Введите категорию и нажмите Enter"
                 onKeyDown={handleThreadCategoryKeyDown}
               />
               <AttachmentGrid attachments={thread.attachments} />
@@ -443,11 +456,11 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
                   onClick={handleCancelThreadEdit}
                   disabled={updatingThread}>
                   <X size={16} />
-                  Cancel
+                  Отмена
                 </Button>
                 <Button onClick={handleUpdateThread} disabled={updatingThread}>
                   <Check size={16} />
-                  {updatingThread ? 'Saving...' : 'Save'}
+                  {updatingThread ? 'Сохраняем...' : 'Сохранить'}
                 </Button>
               </Flex>
             </Box>
@@ -472,7 +485,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
                     }>
                     <Menu.Trigger asChild>
                       <IconButton
-                        aria-label="Thread actions"
+                        aria-label="Действия с тредом"
                         onClick={() => setThreadActionMenuOpen(open => !open)}
                         onMouseEnter={() => setThreadActionMenuOpen(true)}
                         size="sm"
@@ -523,7 +536,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
                   <Flex align="center" as="span" gap="1">
                     <UserRound size={14} />
                     <Text as="span">
-                      @{thread.author?.username ?? 'unknown'}
+                      @{thread.author?.username ?? 'неизвестно'}
                     </Text>
                   </Flex>
                   {isThreadEdited ? (
@@ -558,19 +571,19 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
           <Search size={16} />
         </Box>
         <Input
-          aria-label="Search posts in this thread"
+          aria-label="Поиск постов в этом треде"
           value={postSearch}
           onChange={event => setPostSearch(event.target.value)}
-          placeholder="Search posts in this thread"
+          placeholder="Поиск постов в этом треде"
           paddingLeft="2.25rem"
         />
       </Box>
       {visiblePostsLoaded ? (
-        <StatePanel title="Loading posts">
-          The thread replies are being loaded.
+        <StatePanel title="Загружаем посты">
+          Загружаем ответы в этом треде.
         </StatePanel>
       ) : visiblePostsError ? (
-        <StatePanel title="Could not load posts" tone="danger">
+        <StatePanel title="Не удалось загрузить посты" tone="danger">
           {visiblePostsError}
         </StatePanel>
       ) : visiblePosts.length > 0 ? (
@@ -582,8 +595,8 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
           {!normalizedPostSearch ? (
             <Box ref={postsLoadMoreRef} minHeight="1px">
               {postsLoadingMore ? (
-                <StatePanel title="Loading more posts">
-                  More replies are being loaded.
+                <StatePanel title="Загружаем ещё посты">
+                  Загружаем следующие ответы.
                 </StatePanel>
               ) : null}
             </Box>
@@ -591,10 +604,12 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
         </Box>
       ) : (
         <StatePanel
-          title={normalizedPostSearch ? 'No matching posts' : 'No posts yet'}>
+          title={
+            normalizedPostSearch ? 'Подходящих постов нет' : 'Пока нет постов'
+          }>
           {normalizedPostSearch
-            ? 'Try a different search phrase.'
-            : 'Be the first to add context, code, or an answer.'}
+            ? 'Попробуйте изменить поисковый запрос.'
+            : 'Добавьте первый контекст, код или ответ.'}
         </StatePanel>
       )}
     </Container>

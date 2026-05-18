@@ -20,7 +20,7 @@ func GetLikes(c *gin.Context) {
 	likableType := c.Query("likable_type")
 
 	if likableIDParam == "" || likableType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "likable_id and likable_type query params are required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Укажите идентификатор и тип объекта для лайка"})
 		return
 	}
 
@@ -40,31 +40,31 @@ func GetLikesBatch(c *gin.Context) {
 
 	var body batchRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format", "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный формат запроса"})
 		return
 	}
 
 	results := make([]likeState.Result, 0, len(body.Likables))
 	for _, likable := range body.Likables {
 		if likable.ID == "" || likable.Type == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "likable_id and likable_type are required"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Укажите идентификатор и тип объекта для лайка"})
 			return
 		}
 
 		if !likeState.ValidateLikableType(likable.Type) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid likable type"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный тип объекта для лайка"})
 			return
 		}
 
 		likableID, err := uuid.FromString(likable.ID)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid likable id"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный идентификатор объекта для лайка"})
 			return
 		}
 
 		state, err := likeState.Load(likableID, likable.Type, userData.Id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load likes"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось загрузить лайки"})
 			return
 		}
 
@@ -81,19 +81,19 @@ func loadStateFromParams(c *gin.Context, likableIDParam, likableType string) (li
 	}
 
 	if !likeState.ValidateLikableType(likableType) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid likable type"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный тип объекта для лайка"})
 		return likeState.Result{}, false
 	}
 
 	likableID, err := uuid.FromString(likableIDParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid likable id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный идентификатор объекта для лайка"})
 		return likeState.Result{}, false
 	}
 
 	state, err := likeState.Load(likableID, likableType, userData.Id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load likes"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось загрузить лайки"})
 		return likeState.Result{}, false
 	}
 

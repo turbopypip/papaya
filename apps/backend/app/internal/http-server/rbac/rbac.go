@@ -51,7 +51,7 @@ func CurrentRole(c *gin.Context) (models.Role, bool) {
 func Require(resource Resource, action Action) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if !Can(c, resource, action, uuid.Nil) {
-			AbortForbidden(c, "You do not have permission to perform this action")
+			AbortForbidden(c, "У вас нет прав на это действие")
 			return
 		}
 
@@ -63,7 +63,7 @@ func RequireAny(resource Resource, action Action) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, ok := CurrentRole(c)
 		if !ok || !CanWithRoleAny(role, resource, action) {
-			AbortForbidden(c, "You do not have permission to perform this action")
+			AbortForbidden(c, "У вас нет прав на это действие")
 			return
 		}
 
@@ -75,7 +75,7 @@ func RequireAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, ok := CurrentRole(c)
 		if !ok || role.Name != "admin" {
-			AbortForbidden(c, "Admin permissions are required")
+			AbortForbidden(c, "Для этого действия нужны права администратора")
 			return
 		}
 

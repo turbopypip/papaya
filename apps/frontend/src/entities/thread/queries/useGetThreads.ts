@@ -18,7 +18,8 @@ export const useGetThreads = (page = 1, limit = 100, enabled = true) => {
     loaded: query.isLoading,
     error:
       query.data?.error ??
-      ((query.error as any)?.response?.data?.message ||
+      ((query.error as any)?.response?.data?.error ||
+        (query.error as any)?.response?.data?.message ||
         (query.error ? 'Ошибка получения тредов' : null)),
     fetchThreads: query.refetch,
     refetch: query.refetch,

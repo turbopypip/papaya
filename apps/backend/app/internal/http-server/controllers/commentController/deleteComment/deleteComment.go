@@ -20,27 +20,27 @@ import (
 func DeleteComment(c *gin.Context) {
 	commentID, err := uuid.FromString(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid comment id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный идентификатор комментария"})
 		return
 	}
 
 	var comment models.Comment
 	if err := storage.DB.First(&comment, "id = ?", commentID).Error; errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Comment not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Комментарий не найден"})
 		return
 	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve comment"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить комментарий"})
 		return
 	}
 
 	if !rbac.Can(c, rbac.ResourceComments, rbac.ActionDelete, comment.UserId) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot delete this comment"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "У вас нет прав удалить этот комментарий"})
 		return
 	}
 
 	var post models.Post
 	if err := storage.DB.First(&post, "id = ?", comment.PostId).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve comment post"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить пост комментария"})
 		return
 	}
 
@@ -65,7 +65,7 @@ func DeleteComment(c *gin.Context) {
 		return tx.Delete(&comment).Error
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete comment"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось удалить комментарий"})
 		return
 	}
 	attachments.CleanupFiles(removedFiles)
@@ -79,7 +79,7 @@ func DeleteComment(c *gin.Context) {
 	})
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":    "deleted comment",
+		"message":    "Комментарий удалён",
 		"comment_id": comment.Id,
 	})
 }
@@ -94,9 +94,9 @@ func invalidateCache(c *gin.Context, post models.Post) {
 
 	forumCache := cache.GetGlobalForumCache()
 	if err := forumCache.InvalidatePost(ctx, post.Id.String()); err != nil {
-		c.Header("Cache-Warning", "Failed to invalidate post cache")
+		c.Header("Cache-Warning", "Не удалось обновить кеш поста")
 	}
 	if err := forumCache.InvalidateThread(ctx, post.ThreadId.String()); err != nil {
-		c.Header("Cache-Warning", "Failed to invalidate thread cache")
+		c.Header("Cache-Warning", "Не удалось обновить кеш треда")
 	}
 }

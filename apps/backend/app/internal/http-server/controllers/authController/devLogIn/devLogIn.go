@@ -20,20 +20,19 @@ func DevLogIn(c *gin.Context) {
 	result := storage.DB.First(&user, "email = ?", storage.DevUserEmail)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to get dev user",
+			"error": "Не удалось получить dev-пользователя",
 		})
 		return
 	}
 
 	if err := serverAuth.SetAuthCookie(c, user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"description": "Failed to create a token",
-			"error":       err.Error(),
+			"error": "Не удалось создать токен авторизации",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Dev user logged in",
+		"message": "Dev-пользователь вошёл в аккаунт",
 	})
 }

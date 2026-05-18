@@ -125,13 +125,13 @@ const NavigationTabs = () => {
       width="100%">
       <Tabs.List className={styles.tabs_list}>
         <Tabs.Trigger className={styles.tabs_trigger} value="threads" asChild>
-          <Link>Threads</Link>
+          <Link>Треды</Link>
         </Tabs.Trigger>
       </Tabs.List>
 
       <Tabs.Content value="threads">
         {isAuthenticated === null ? (
-          <Text>Loading...</Text>
+          <Text>Загружаем...</Text>
         ) : isAuthenticated ? (
           <Box>
             <HStack
@@ -147,16 +147,16 @@ const NavigationTabs = () => {
                 <DrawerTrigger asChild>
                   <Button variant="outline" size="sm">
                     <FaPlus />
-                    Create new thread
+                    Создать тред
                   </Button>
                 </DrawerTrigger>
                 <DrawerContent roundedTop={'l3'}>
                   <DrawerHeader>
-                    <DrawerTitle>Enter a Thread</DrawerTitle>
+                    <DrawerTitle>Новый тред</DrawerTitle>
                   </DrawerHeader>
                   <DrawerBody>
                     <Textarea
-                      placeholder="Your important text"
+                      placeholder="Заголовок треда"
                       name="title"
                       value={threadForm.title}
                       onChange={handleChange}
@@ -174,7 +174,7 @@ const NavigationTabs = () => {
                       ))}
                     </Flex>
                     <Input
-                      placeholder="Enter some categories"
+                      placeholder="Введите категорию и нажмите Enter"
                       onKeyDown={handleCategoryKeyDown}
                     />
                     <AttachmentPicker
@@ -190,12 +190,12 @@ const NavigationTabs = () => {
                   </DrawerBody>
                   <DrawerFooter>
                     <DrawerActionTrigger asChild>
-                      <Button variant="outline">Cancel</Button>
+                      <Button variant="outline">Отмена</Button>
                     </DrawerActionTrigger>
                     <Button
                       disabled={creatingThread}
                       onClick={handleCreateThread}>
-                      {creatingThread ? 'Publishing...' : 'Publish'}
+                      {creatingThread ? 'Публикуем...' : 'Опубликовать'}
                     </Button>
                   </DrawerFooter>
                   <DrawerCloseTrigger />
@@ -212,13 +212,13 @@ const NavigationTabs = () => {
                   <Search size={16} />
                 </Box>
                 <Input
-                  aria-label="Search threads"
+                  aria-label="Поиск тредов"
                   value={threadSearch}
                   onChange={event => {
                     setThreadSearch(event.target.value);
                     setThreadPage(1);
                   }}
-                  placeholder="Search threads"
+                  placeholder="Поиск тредов"
                   paddingLeft="2.25rem"
                 />
               </Box>
@@ -228,12 +228,14 @@ const NavigationTabs = () => {
               loaded={threadsLoaded}
               error={threadsError}
               emptyTitle={
-                normalizedThreadSearch ? 'No matching threads' : 'No threads yet'
+                normalizedThreadSearch
+                  ? 'Подходящих тредов нет'
+                  : 'Пока нет тредов'
               }
               emptyMessage={
                 normalizedThreadSearch
-                  ? 'Try a different search phrase.'
-                  : 'Start the first discussion when you are ready.'
+                  ? 'Попробуйте изменить поисковый запрос.'
+                  : 'Начните первое обсуждение, когда будете готовы.'
               }
             />
             <Flex
@@ -243,7 +245,7 @@ const NavigationTabs = () => {
               marginTop="1rem"
               flexWrap="wrap">
               <Text color="gray.600" fontSize="sm">
-                Page {threadPage} of {threadPageCount}
+                Страница {threadPage} из {threadPageCount}
               </Text>
               <Flex gap="2">
                 <Button
@@ -253,7 +255,7 @@ const NavigationTabs = () => {
                   onClick={() =>
                     setThreadPage(currentPage => Math.max(1, currentPage - 1))
                   }>
-                  Previous
+                  Назад
                 </Button>
                 <Button
                   size="sm"
@@ -264,13 +266,13 @@ const NavigationTabs = () => {
                       Math.min(threadPageCount, currentPage + 1),
                     )
                   }>
-                  Next
+                  Вперёд
                 </Button>
               </Flex>
             </Flex>
           </Box>
         ) : (
-          <Text>You&#39;re not logged in</Text>
+          <Text>Вы не вошли в аккаунт</Text>
         )}
       </Tabs.Content>
     </Tabs.Root>

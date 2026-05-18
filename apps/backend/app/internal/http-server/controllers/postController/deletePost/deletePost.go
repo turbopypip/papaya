@@ -20,21 +20,21 @@ import (
 func DeletePost(c *gin.Context) {
 	postID, err := uuid.FromString(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный идентификатор поста"})
 		return
 	}
 
 	var post models.Post
 	if err := storage.DB.First(&post, "id = ?", postID).Error; errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Пост не найден"})
 		return
 	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve post"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить пост"})
 		return
 	}
 
 	if !rbac.Can(c, rbac.ResourcePosts, rbac.ActionDelete, post.UserId) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot delete this post"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "У вас нет прав удалить этот пост"})
 		return
 	}
 
@@ -93,7 +93,7 @@ func DeletePost(c *gin.Context) {
 		return tx.Delete(&post).Error
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete post"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось удалить пост"})
 		return
 	}
 	attachments.CleanupFiles(removedFiles)
@@ -106,7 +106,7 @@ func DeletePost(c *gin.Context) {
 	})
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "deleted post",
+		"message": "Пост удалён",
 		"post_id": post.Id,
 	})
 }
@@ -121,9 +121,9 @@ func invalidateCache(c *gin.Context, post models.Post) {
 
 	forumCache := cache.GetGlobalForumCache()
 	if err := forumCache.InvalidatePost(ctx, post.Id.String()); err != nil {
-		c.Header("Cache-Warning", "Failed to invalidate post cache")
+		c.Header("Cache-Warning", "Не удалось обновить кеш поста")
 	}
 	if err := forumCache.InvalidateThread(ctx, post.ThreadId.String()); err != nil {
-		c.Header("Cache-Warning", "Failed to invalidate thread cache")
+		c.Header("Cache-Warning", "Не удалось обновить кеш треда")
 	}
 }

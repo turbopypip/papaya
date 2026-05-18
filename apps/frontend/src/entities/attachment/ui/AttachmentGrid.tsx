@@ -44,7 +44,7 @@ const getKind = (fileName: string, contentType?: string): AttachmentKind => {
     return filePalette.ipynb;
   }
 
-  return {color: '#475467', label: extension?.toUpperCase() || 'FILE', isImage: false};
+  return {color: '#475467', label: extension?.toUpperCase() || 'ФАЙЛ', isImage: false};
 };
 
 const formatFileSize = (size?: number) => {
@@ -100,7 +100,7 @@ export const AttachmentTile = ({
       </span>
       {onRemove ? (
         <button
-          aria-label={`Remove ${fileName}`}
+          aria-label={`Удалить ${fileName}`}
           className={styles.remove}
           onClick={event => {
             event.preventDefault();

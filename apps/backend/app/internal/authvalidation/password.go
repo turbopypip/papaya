@@ -19,19 +19,19 @@ func ValidatePassword(password string) error {
 	var reasons []string
 
 	if utf8.RuneCountInString(password) < PasswordMinLength {
-		reasons = append(reasons, "Password must be at least 8 characters long")
+		reasons = append(reasons, "Пароль должен быть не короче 8 символов")
 	}
 	if !hasLowercaseLatin(password) {
-		reasons = append(reasons, "Password must include a lowercase Latin letter")
+		reasons = append(reasons, "Пароль должен содержать строчную латинскую букву")
 	}
 	if !hasUppercaseLatin(password) {
-		reasons = append(reasons, "Password must include an uppercase Latin letter")
+		reasons = append(reasons, "Пароль должен содержать заглавную латинскую букву")
 	}
 	if !hasDigit(password) {
-		reasons = append(reasons, "Password must include a number")
+		reasons = append(reasons, "Пароль должен содержать цифру")
 	}
 	if !hasSpecialCharacter(password) {
-		reasons = append(reasons, "Password must include a special character")
+		reasons = append(reasons, "Пароль должен содержать специальный символ")
 	}
 
 	if len(reasons) > 0 {

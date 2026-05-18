@@ -3,6 +3,7 @@ package createThread
 import (
 	"context"
 	"net/http"
+	"papaya-backend/internal/analytics"
 	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/cache"
 	"papaya-backend/internal/forumvalidation"
@@ -28,8 +29,7 @@ func CreateThread(c *gin.Context) {
 		body.Categories = c.PostFormArray("categories")
 	} else if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Failed to get body",
-			"details": err.Error(),
+			"error": "Не удалось прочитать данные треда",
 		})
 		return
 	}
@@ -41,7 +41,7 @@ func CreateThread(c *gin.Context) {
 	body.Title = strings.TrimSpace(body.Title)
 	body.Categories = categories
 	if len(body.Categories) > 0 && !rbac.CanAny(c, rbac.ResourceCategories, rbac.ActionCreate) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot add categories"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "У вас нет прав добавлять категории"})
 		return
 	}
 
@@ -49,8 +49,7 @@ func CreateThread(c *gin.Context) {
 	threadId, err := uuid.NewV6()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":       err.Error(),
-			"description": "Failed to generate thread id",
+			"error": "Не удалось создать идентификатор треда",
 		})
 		return
 	}
@@ -95,7 +94,7 @@ func CreateThread(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to create thread",
+			"message": "Не удалось создать тред",
 		})
 		return
 	}
@@ -112,12 +111,24 @@ func CreateThread(c *gin.Context) {
 		forumCache := cache.GetGlobalForumCache()
 		if err := forumCache.CacheThread(ctx, threadId.String(), thread); err != nil {
 			// Логируем ошибку, но не прерываем выполнение
-			c.Header("Cache-Warning", "Failed to cache new thread")
+			c.Header("Cache-Warning", "Не удалось обновить кеш треда")
 		}
 	}
 
+	analytics.Record(c.Request.Context(), analytics.Event{
+		UserID:     userData.Id,
+		EventType:  analytics.EventThreadCreated,
+		EntityType: analytics.EntityThread,
+		EntityID:   thread.Id,
+		ThreadID:   thread.Id,
+		Metadata: map[string]any{
+			"categories_count":  len(thread.Categories),
+			"attachments_count": len(thread.Attachments),
+		},
+	})
+
 	c.JSON(http.StatusOK, gin.H{
-		"message": "created thread",
+		"message": "Тред создан",
 		"thread":  thread,
 	})
 }

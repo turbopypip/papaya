@@ -7,6 +7,6 @@ import (
 
 func Validate(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"message": "I'm logged in",
+		"message": "Вы вошли в аккаунт",
 	})
 }

@@ -28,13 +28,13 @@ type updatePostBody struct {
 func UpdatePost(c *gin.Context) {
 	postID, err := uuid.FromString(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный идентификатор поста"})
 		return
 	}
 
 	body, err := bindBody(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Не удалось прочитать данные поста"})
 		return
 	}
 	if err := forumvalidation.ValidatePostContent(body.Content); err != nil {
@@ -47,15 +47,15 @@ func UpdatePost(c *gin.Context) {
 
 	var post models.Post
 	if err := storage.DB.First(&post, "id = ?", postID).Error; errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Пост не найден"})
 		return
 	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve post"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить пост"})
 		return
 	}
 
 	if !rbac.Can(c, rbac.ResourcePosts, rbac.ActionUpdate, post.UserId) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot edit this post"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "У вас нет прав редактировать этот пост"})
 		return
 	}
 
@@ -101,17 +101,17 @@ func UpdatePost(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update post"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось обновить пост"})
 		return
 	}
 	attachments.CleanupFiles(removedFiles)
 
 	if err := storage.DB.Preload("Author").First(&post, "id = ?", post.Id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve post"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить пост"})
 		return
 	}
 	if err := attachments.AttachToPost(storage.DB, &post); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve post attachments"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить вложения поста"})
 		return
 	}
 
@@ -123,7 +123,7 @@ func UpdatePost(c *gin.Context) {
 	})
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "updated post",
+		"message": "Пост обновлён",
 		"post":    post,
 	})
 }
@@ -143,7 +143,7 @@ func bindBody(c *gin.Context) (updatePostBody, error) {
 			for _, rawID := range rawIDs {
 				id, err := uuid.FromString(rawID)
 				if err != nil {
-					return body, errors.New("Invalid attachment id")
+					return body, errors.New("Некорректный идентификатор вложения")
 				}
 				body.KeepAttachmentID = append(body.KeepAttachmentID, id)
 			}
@@ -165,7 +165,7 @@ func bindBody(c *gin.Context) (updatePostBody, error) {
 		for _, rawID := range *jsonBody.KeepAttachmentID {
 			id, err := uuid.FromString(rawID)
 			if err != nil {
-				return body, errors.New("Invalid attachment id")
+				return body, errors.New("Некорректный идентификатор вложения")
 			}
 			body.KeepAttachmentID = append(body.KeepAttachmentID, id)
 		}
@@ -184,9 +184,9 @@ func invalidateCache(c *gin.Context, post models.Post) {
 
 	forumCache := cache.GetGlobalForumCache()
 	if err := forumCache.InvalidatePost(ctx, post.Id.String()); err != nil {
-		c.Header("Cache-Warning", "Failed to invalidate post cache")
+		c.Header("Cache-Warning", "Не удалось обновить кеш поста")
 	}
 	if err := forumCache.InvalidateThread(ctx, post.ThreadId.String()); err != nil {
-		c.Header("Cache-Warning", "Failed to invalidate thread cache")
+		c.Header("Cache-Warning", "Не удалось обновить кеш треда")
 	}
 }

@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="ru" suppressHydrationWarning>
       <body>
         <Providers>
           <Box style={{minHeight: 'calc(100vh - 60px)'}}>

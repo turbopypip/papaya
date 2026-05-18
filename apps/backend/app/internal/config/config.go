@@ -13,7 +13,8 @@ type Config struct {
 	StoragePath string `yaml:"storage-path"`
 	LogLevel    string `yaml:"log-level" env-default:"info"`
 	HTTPServer  `yaml:"http_server"`
-	Redis       RedisConfig `yaml:"redis"`
+	Redis       RedisConfig      `yaml:"redis"`
+	ClickHouse  ClickHouseConfig `yaml:"clickhouse"`
 }
 
 type HTTPServer struct {
@@ -26,6 +27,14 @@ type RedisConfig struct {
 	Address  string `yaml:"address" env-default:"localhost:6379"`
 	Password string `yaml:"password" env-default:""`
 	DB       int    `yaml:"db" env-default:"0"`
+}
+
+type ClickHouseConfig struct {
+	Enabled  bool   `yaml:"enabled" env:"CLICKHOUSE_ENABLED" env-default:"true"`
+	Address  string `yaml:"address" env:"CLICKHOUSE_ADDRESS" env-default:"localhost:9000"`
+	Database string `yaml:"database" env-default:"papaya_analytics"`
+	Username string `yaml:"username" env:"CLICKHOUSE_USER" env-default:"papaya"`
+	Password string `yaml:"password" env:"CLICKHOUSE_PASSWORD" env-default:""`
 }
 
 func MustLoad() *Config {
@@ -41,6 +50,9 @@ func MustLoad() *Config {
 
 	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
 		log.Fatalf("cannot read config: %s", configPath)
+	}
+	if err := cleanenv.ReadEnv(&cfg); err != nil {
+		log.Fatalf("cannot read environment: %s", err)
 	}
 
 	return &cfg

@@ -18,21 +18,21 @@ const ThreadsTable: FC<Props> = ({
   threads,
   loaded,
   error,
-  emptyTitle = 'No threads yet',
-  emptyMessage = 'Start the first discussion when you are ready.',
+  emptyTitle = 'Пока нет тредов',
+  emptyMessage = 'Начните первое обсуждение, когда будете готовы.',
 }) => {
   const router = useRouter();
   if (loaded) {
     return (
-      <StatePanel title="Loading threads">
-        Fresh discussions are on their way.
+      <StatePanel title="Загружаем треды">
+        Свежие обсуждения уже в пути.
       </StatePanel>
     );
   }
 
   if (error) {
     return (
-      <StatePanel title="Could not load threads" tone="danger">
+      <StatePanel title="Не удалось загрузить треды" tone="danger">
         {error}
       </StatePanel>
     );
@@ -61,20 +61,20 @@ const ThreadsTable: FC<Props> = ({
                 bg="gray.100"
                 color="gray.600"
                 fontWeight="600">
-                Title
+                Заголовок
               </Table.ColumnHeader>
               <Table.ColumnHeader
                 bg="gray.100"
                 color="gray.600"
                 fontWeight="600">
-                Author
+                Автор
               </Table.ColumnHeader>
               <Table.ColumnHeader
                 bg="gray.100"
                 color="gray.600"
                 fontWeight="600"
                 textAlign="end">
-                Categories
+                Категории
               </Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
@@ -98,7 +98,7 @@ const ThreadsTable: FC<Props> = ({
                   }
                   minWidth="8rem">
                   <Text color="gray.600" fontSize="sm">
-                    @{thread.author?.username ?? 'unknown'}
+                    @{thread.author?.username ?? 'неизвестно'}
                   </Text>
                 </Table.Cell>
                 <Table.Cell
