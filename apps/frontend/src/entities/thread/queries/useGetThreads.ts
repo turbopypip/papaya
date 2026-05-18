@@ -12,6 +12,9 @@ export const useGetThreads = (page = 1, limit = 100, enabled = true) => {
 
   return {
     threads: query.data?.threads ?? [],
+    total: query.data?.total ?? 0,
+    page: query.data?.page ?? page,
+    limit: query.data?.limit ?? limit,
     loaded: query.isLoading,
     error:
       query.data?.error ??

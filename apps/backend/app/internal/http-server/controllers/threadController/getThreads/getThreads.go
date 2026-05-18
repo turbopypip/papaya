@@ -29,7 +29,14 @@ func GetThreads(c *gin.Context) {
 
 	// Offset - start thread
 	offset := (page - 1) * limit
+	var total int64
 	var threads []models.Thread
+
+	err = storage.DB.Model(&models.Thread{}).Count(&total).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count threads"})
+		return
+	}
 
 	err = storage.DB.Preload("Author").Limit(limit).Offset(offset).Find(&threads).Error
 	if err != nil {
@@ -42,5 +49,10 @@ func GetThreads(c *gin.Context) {
 	}
 
 	// Send data
-	c.JSON(http.StatusOK, gin.H{"threads": threads})
+	c.JSON(http.StatusOK, gin.H{
+		"threads": threads,
+		"page":    page,
+		"limit":   limit,
+		"total":   total,
+	})
 }

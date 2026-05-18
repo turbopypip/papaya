@@ -20,6 +20,9 @@ export interface DeletedThread {
 export interface GetThreadsResponse {
   error?: string;
   threads: Thread[];
+  page?: number;
+  limit?: number;
+  total?: number;
 }
 
 export interface GetThreadResponse {

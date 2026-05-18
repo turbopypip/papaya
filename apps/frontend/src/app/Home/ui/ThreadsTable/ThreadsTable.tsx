@@ -11,8 +11,16 @@ type Props = {
   threads: Thread[];
   loaded: boolean;
   error: string | null;
+  emptyTitle?: string;
+  emptyMessage?: string;
 };
-const ThreadsTable: FC<Props> = ({threads, loaded, error}) => {
+const ThreadsTable: FC<Props> = ({
+  threads,
+  loaded,
+  error,
+  emptyTitle = 'No threads yet',
+  emptyMessage = 'Start the first discussion when you are ready.',
+}) => {
   const router = useRouter();
   if (loaded) {
     return (
@@ -35,9 +43,7 @@ const ThreadsTable: FC<Props> = ({threads, loaded, error}) => {
 
   if (threads.length == 0) {
     return (
-      <StatePanel title="No threads yet">
-        Start the first discussion when you are ready.
-      </StatePanel>
+      <StatePanel title={emptyTitle}>{emptyMessage}</StatePanel>
     );
   }
 

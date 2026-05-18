@@ -5,6 +5,7 @@ import (
 	"papaya-backend/internal/http-server/controllers/postController/createPost"
 	"papaya-backend/internal/http-server/controllers/postController/deletePost"
 	"papaya-backend/internal/http-server/controllers/postController/getPostsWithThreadId"
+	"papaya-backend/internal/http-server/controllers/postController/searchPosts"
 	"papaya-backend/internal/http-server/controllers/postController/updatePost"
 )
 
@@ -14,6 +15,8 @@ type PostController interface {
 	CreatePost(c *gin.Context)
 
 	GetPostsWithThreadId(c *gin.Context)
+
+	SearchPosts(c *gin.Context)
 
 	UpdatePost(c *gin.Context)
 
@@ -29,6 +32,10 @@ func (r Impl) CreatePost(c *gin.Context) {
 
 func (r Impl) GetPostsWithThreadId(c *gin.Context) {
 	getPostsWithThreadId.GetPostsWithThreadId(c)
+}
+
+func (r Impl) SearchPosts(c *gin.Context) {
+	searchPosts.SearchPosts(c)
 }
 
 func (r Impl) UpdatePost(c *gin.Context) {

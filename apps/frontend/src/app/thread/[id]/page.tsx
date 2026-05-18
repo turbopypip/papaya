@@ -1,5 +1,5 @@
 'use client';
-import React, {useEffect, useState} from 'react';
+import React, {useDeferredValue, useEffect, useRef, useState} from 'react';
 import {
   Box,
   Container,
@@ -52,11 +52,13 @@ import {
   X,
   EllipsisVertical,
   UserRound,
+  Search,
 } from 'lucide-react';
 import {useRouter} from 'next/navigation';
 import {useGetCurrentUser} from '@/entities/user/queries/useGetCurrentUser';
 import {MarkdownEditor} from '@/shared/Components/Markdown';
 import {StatePanel} from '@/shared/Components/StatePanel';
+import {useSearchPosts} from '@/entities/post/queries/useSearchPosts';
 
 const ThreadPage = ({params}: {params: {id: string}}) => {
   const router = useRouter();
@@ -74,8 +76,19 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
   const {
     posts,
     loaded: postsLoaded,
+    loadingMore: postsLoadingMore,
+    hasMore: hasMorePosts,
+    loadMore: loadMorePosts,
     error: postsError,
   } = useGetPosts(params.id, canFetchThread);
+  const [postSearch, setPostSearch] = useState('');
+  const deferredPostSearch = useDeferredValue(postSearch);
+  const normalizedPostSearch = deferredPostSearch.trim();
+  const {
+    posts: foundPosts,
+    loaded: searchPostsLoaded,
+    error: searchPostsError,
+  } = useSearchPosts(params.id, deferredPostSearch, canFetchThread);
   const {user: currentUser} = useGetCurrentUser(canFetchThread);
 
   const [postForm, setPostForm] = useState<CreatePostRequest>({
@@ -84,6 +97,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
   });
   const [postFiles, setPostFiles] = useState<File[]>([]);
   const [postDrawerOpen, setPostDrawerOpen] = useState(false);
+  const postsLoadMoreRef = useRef<HTMLDivElement | null>(null);
   const [isEditingThread, setIsEditingThread] = useState(false);
   const [threadActionMenuOpen, setThreadActionMenuOpen] = useState(false);
   const [threadForm, setThreadForm] = useState<UpdateThreadRequest>({
@@ -127,6 +141,35 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
     setThreadFiles([]);
     setIsEditingThread(false);
   }, [thread]);
+
+  useEffect(() => {
+    const target = postsLoadMoreRef.current;
+    if (
+      !target ||
+      normalizedPostSearch ||
+      !hasMorePosts ||
+      postsLoadingMore ||
+      !canFetchThread
+    ) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0]?.isIntersecting) {
+        loadMorePosts();
+      }
+    });
+
+    observer.observe(target);
+
+    return () => observer.disconnect();
+  }, [
+    canFetchThread,
+    hasMorePosts,
+    loadMorePosts,
+    normalizedPostSearch,
+    postsLoadingMore,
+  ]);
 
   const handleCreatePost = async () => {
     await createPost({...postForm, attachments: postFiles});
@@ -290,6 +333,13 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
     new Date(thread.UpdatedAt).getTime() -
       new Date(thread.CreatedAt).getTime() >
       1000;
+  const visiblePosts = normalizedPostSearch ? foundPosts : posts;
+  const visiblePostsLoaded = normalizedPostSearch
+    ? searchPostsLoaded
+    : postsLoaded;
+  const visiblePostsError = normalizedPostSearch
+    ? searchPostsError
+    : postsError;
 
   return (
     <Container>
@@ -497,24 +547,54 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
         </Card.Body>
       </Card.Root>
       {createPostError ? <Box color="red.500">{createPostError}</Box> : null}
-      {postsLoaded ? (
+      <Box marginTop="1.5rem" position="relative" maxWidth="32rem">
+        <Box
+          position="absolute"
+          left="0.75rem"
+          top="50%"
+          transform="translateY(-50%)"
+          color="gray.500"
+          pointerEvents="none">
+          <Search size={16} />
+        </Box>
+        <Input
+          aria-label="Search posts in this thread"
+          value={postSearch}
+          onChange={event => setPostSearch(event.target.value)}
+          placeholder="Search posts in this thread"
+          paddingLeft="2.25rem"
+        />
+      </Box>
+      {visiblePostsLoaded ? (
         <StatePanel title="Loading posts">
           The thread replies are being loaded.
         </StatePanel>
-      ) : postsError ? (
+      ) : visiblePostsError ? (
         <StatePanel title="Could not load posts" tone="danger">
-          {postsError}
+          {visiblePostsError}
         </StatePanel>
-      ) : posts.length > 0 ? (
+      ) : visiblePosts.length > 0 ? (
         <Box marginBottom="2rem">
           <Separator margin="2em 0 2em 0" />
-          {posts.map(post => (
+          {visiblePosts.map(post => (
             <Post key={post.ID} post={post} currentUser={currentUser} />
           ))}
+          {!normalizedPostSearch ? (
+            <Box ref={postsLoadMoreRef} minHeight="1px">
+              {postsLoadingMore ? (
+                <StatePanel title="Loading more posts">
+                  More replies are being loaded.
+                </StatePanel>
+              ) : null}
+            </Box>
+          ) : null}
         </Box>
       ) : (
-        <StatePanel title="No posts yet">
-          Be the first to add context, code, or an answer.
+        <StatePanel
+          title={normalizedPostSearch ? 'No matching posts' : 'No posts yet'}>
+          {normalizedPostSearch
+            ? 'Try a different search phrase.'
+            : 'Be the first to add context, code, or an answer.'}
         </StatePanel>
       )}
     </Container>
