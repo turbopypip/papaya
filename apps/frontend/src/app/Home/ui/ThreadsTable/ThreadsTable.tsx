@@ -5,6 +5,7 @@ import {Tag} from '@/shared/Components/Tag/ui/tag';
 import {useRouter} from 'next/navigation';
 import {Box, Table, Text} from '@chakra-ui/react';
 import {Thread} from '@/entities/thread';
+import {StatePanel} from '@/shared/Components/StatePanel';
 
 type Props = {
   threads: Thread[];
@@ -14,18 +15,30 @@ type Props = {
 const ThreadsTable: FC<Props> = ({threads, loaded, error}) => {
   const router = useRouter();
   if (loaded) {
-    return <p>Loading...</p>;
+    return (
+      <StatePanel title="Loading threads">
+        Fresh discussions are on their way.
+      </StatePanel>
+    );
   }
 
   if (error) {
-    return <p style={{color: 'red'}}>{error}</p>;
+    return (
+      <StatePanel title="Could not load threads" tone="danger">
+        {error}
+      </StatePanel>
+    );
   }
   const handleClick = (threadId: string) => {
     router.push(`/thread/${threadId}`);
   };
 
   if (threads.length == 0) {
-    return <></>;
+    return (
+      <StatePanel title="No threads yet">
+        Start the first discussion when you are ready.
+      </StatePanel>
+    );
   }
 
   return (
@@ -38,10 +51,16 @@ const ThreadsTable: FC<Props> = ({threads, loaded, error}) => {
         <Table.Root interactive variant="line" width="100%">
           <Table.Header>
             <Table.Row bg="gray.100">
-              <Table.ColumnHeader bg="gray.100" color="gray.600" fontWeight="600">
+              <Table.ColumnHeader
+                bg="gray.100"
+                color="gray.600"
+                fontWeight="600">
                 Title
               </Table.ColumnHeader>
-              <Table.ColumnHeader bg="gray.100" color="gray.600" fontWeight="600">
+              <Table.ColumnHeader
+                bg="gray.100"
+                color="gray.600"
+                fontWeight="600">
                 Author
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -70,7 +89,8 @@ const ThreadsTable: FC<Props> = ({threads, loaded, error}) => {
                 <Table.Cell
                   borderBottomWidth={
                     index === threads.length - 1 ? '0' : undefined
-                  }>
+                  }
+                  minWidth="8rem">
                   <Text color="gray.600" fontSize="sm">
                     @{thread.author?.username ?? 'unknown'}
                   </Text>
@@ -79,7 +99,11 @@ const ThreadsTable: FC<Props> = ({threads, loaded, error}) => {
                   borderBottomWidth={
                     index === threads.length - 1 ? '0' : undefined
                   }>
-                  <Box gap="2" display="flex" justifyContent="flex-end">
+                  <Box
+                    gap="2"
+                    display="flex"
+                    flexWrap="wrap"
+                    justifyContent="flex-end">
                     {(thread.categories ?? []).map(categorie => (
                       <Tag key={categorie} colorScheme="purple">
                         {categorie}

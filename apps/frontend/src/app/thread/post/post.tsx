@@ -54,6 +54,7 @@ import {useUpdateComment} from '@/entities/comment/queries/useUpdateComment';
 import {useDeleteComment} from '@/entities/comment/queries/useDeleteComment';
 import {User} from '@/entities/user/types/userTypes';
 import {MarkdownEditor, MarkdownRenderer} from '@/shared/Components/Markdown';
+import {StatePanel} from '@/shared/Components/StatePanel';
 
 type Props = {
   post: PostType;
@@ -226,7 +227,7 @@ const CommentItem = ({
                       onClick={handleDeleteComment}
                       value="delete">
                       <Trash2 size={16} />
-                      Удалить
+                      {deletingComment ? 'Удаляем...' : 'Удалить'}
                     </Menu.Item>
                   ) : null}
                 </Menu.Content>
@@ -252,6 +253,7 @@ const CommentItem = ({
             </DrawerHeader>
             <DrawerBody>
               <MarkdownEditor
+                disabled={updatingComment}
                 minH="140px"
                 placeholder="Текст комментария"
                 value={editContent}
@@ -439,7 +441,7 @@ const Post: FC<Props> = ({post, currentUser}) => {
                       onClick={handleDeletePost}
                       value="delete">
                       <Trash2 size={16} />
-                      Удалить
+                      {deletingPost ? 'Удаляем...' : 'Удалить'}
                     </Menu.Item>
                   ) : null}
                 </Menu.Content>
@@ -477,6 +479,7 @@ const Post: FC<Props> = ({post, currentUser}) => {
             </DrawerHeader>
             <DrawerBody>
               <MarkdownEditor
+                disabled={updatingPost}
                 minH="180px"
                 placeholder="Текст поста"
                 value={editContent}
@@ -587,18 +590,27 @@ const Post: FC<Props> = ({post, currentUser}) => {
                   </DrawerContent>
                 </DrawerRoot>
 
-                {commentsLoaded ? <Box>Loading comments...</Box> : null}
-                {commentsError ? (
-                  <Box color="red.500">{commentsError}</Box>
-                ) : null}
-
-                {comments?.map(comment => (
-                  <CommentItem
-                    comment={comment}
-                    currentUser={currentUser}
-                    key={comment.ID}
-                  />
-                ))}
+                {commentsLoaded ? (
+                  <StatePanel title="Loading comments">
+                    Replies for this post are being loaded.
+                  </StatePanel>
+                ) : commentsError ? (
+                  <StatePanel title="Could not load comments" tone="danger">
+                    {commentsError}
+                  </StatePanel>
+                ) : comments.length > 0 ? (
+                  comments.map(comment => (
+                    <CommentItem
+                      comment={comment}
+                      currentUser={currentUser}
+                      key={comment.ID}
+                    />
+                  ))
+                ) : (
+                  <StatePanel title="No comments yet">
+                    Start the conversation under this post.
+                  </StatePanel>
+                )}
               </TimelineRoot>
             </Collapsible.Content>
           </Collapsible.Root>
