@@ -56,6 +56,7 @@ import {
 import {useRouter} from 'next/navigation';
 import {useGetCurrentUser} from '@/entities/user/queries/useGetCurrentUser';
 import {MarkdownEditor} from '@/shared/Components/Markdown';
+import {StatePanel} from '@/shared/Components/StatePanel';
 
 const ThreadPage = ({params}: {params: {id: string}}) => {
   const router = useRouter();
@@ -208,19 +209,43 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
   };
 
   if (isAuthenticated === null) {
-    return <Container>Loading...</Container>;
+    return (
+      <Container>
+        <StatePanel title="Loading session">
+          Checking access before opening the thread.
+        </StatePanel>
+      </Container>
+    );
   }
 
   if (!isAuthenticated) {
-    return <Container>You&#39;re not logged in</Container>;
+    return (
+      <Container>
+        <StatePanel title="You are not logged in">
+          Sign in to view discussions.
+        </StatePanel>
+      </Container>
+    );
   }
 
   if (threadLoaded) {
-    return <Container>Loading...</Container>;
+    return (
+      <Container>
+        <StatePanel title="Loading thread">
+          Pulling the latest thread details.
+        </StatePanel>
+      </Container>
+    );
   }
 
   if (threadError) {
-    return <Container>{threadError}</Container>;
+    return (
+      <Container>
+        <StatePanel title="Could not load thread" tone="danger">
+          {threadError}
+        </StatePanel>
+      </Container>
+    );
   }
 
   if (deletedThread) {
@@ -239,7 +264,13 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
   }
 
   if (thread == null) {
-    return <>Not found this thread</>;
+    return (
+      <Container>
+        <StatePanel title="Thread not found">
+          It may have been removed or the link may be outdated.
+        </StatePanel>
+      </Container>
+    );
   }
 
   const currentUserId = currentUser?.ID ?? currentUser?.id;
@@ -324,6 +355,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
           {isEditingThread ? (
             <Box display="grid" gap="0.75rem">
               <Textarea
+                disabled={updatingThread}
                 name="title"
                 value={threadForm.title}
                 onChange={handleThreadChange}
@@ -334,6 +366,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
                     key={category}
                     variant="outline"
                     size="xs"
+                    disabled={updatingThread}
                     onClick={() => handleDeleteThreadCategory(category)}>
                     <X size={14} />
                     {category}
@@ -341,6 +374,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
                 ))}
               </Flex>
               <Input
+                disabled={updatingThread}
                 placeholder="Enter category and press Enter"
                 onKeyDown={handleThreadCategoryKeyDown}
               />
@@ -417,7 +451,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
                             onClick={handleDeleteThread}
                             value="delete">
                             <Trash2 size={16} />
-                            Удалить
+                            {deletingThread ? 'Удаляем...' : 'Удалить'}
                           </Menu.Item>
                         ) : null}
                       </Menu.Content>
@@ -464,9 +498,13 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
       </Card.Root>
       {createPostError ? <Box color="red.500">{createPostError}</Box> : null}
       {postsLoaded ? (
-        <Box>Loading posts...</Box>
+        <StatePanel title="Loading posts">
+          The thread replies are being loaded.
+        </StatePanel>
       ) : postsError ? (
-        <Box color="red.500">{postsError}</Box>
+        <StatePanel title="Could not load posts" tone="danger">
+          {postsError}
+        </StatePanel>
       ) : posts.length > 0 ? (
         <Box marginBottom="2rem">
           <Separator margin="2em 0 2em 0" />
@@ -475,7 +513,9 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
           ))}
         </Box>
       ) : (
-        <Box>This thread has no posts</Box>
+        <StatePanel title="No posts yet">
+          Be the first to add context, code, or an answer.
+        </StatePanel>
       )}
     </Container>
   );

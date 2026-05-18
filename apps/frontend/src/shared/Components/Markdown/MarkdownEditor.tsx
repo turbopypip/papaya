@@ -18,6 +18,7 @@ type Props = {
   onChange: (value: string) => void;
   placeholder?: string;
   minH?: string;
+  disabled?: boolean;
 };
 
 type FormatAction = {
@@ -71,6 +72,7 @@ export const MarkdownEditor = ({
   onChange,
   placeholder,
   minH = '180px',
+  disabled = false,
 }: Props) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -114,6 +116,7 @@ export const MarkdownEditor = ({
           {FORMAT_ACTIONS.map(action => (
             <IconButton
               aria-label={action.label}
+              disabled={disabled}
               key={action.label}
               onClick={() => applyFormat(action)}
               size="sm"
@@ -125,6 +128,7 @@ export const MarkdownEditor = ({
         </Flex>
         <Flex gap="1">
           <Button
+            disabled={disabled}
             onClick={() => setPreviewOpen(false)}
             size="sm"
             type="button"
@@ -133,6 +137,7 @@ export const MarkdownEditor = ({
             Write
           </Button>
           <Button
+            disabled={disabled}
             onClick={() => setPreviewOpen(true)}
             size="sm"
             type="button"
@@ -154,6 +159,7 @@ export const MarkdownEditor = ({
         </Box>
       ) : (
         <Textarea
+          disabled={disabled}
           minH={minH}
           placeholder={placeholder}
           ref={textareaRef}
