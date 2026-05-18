@@ -66,6 +66,23 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 База аналитики фиксирована в миграциях как `papaya_analytics`; через окружение настраиваются адрес ClickHouse, пользователь и пароль.
 
+Сырые события в `papaya_analytics.user_events` не хранятся бессрочно. Retention задается ClickHouse TTL в миграциях:
+
+- `recommendation_impression` - 60 дней;
+- `recommendation_clicked` - 365 дней;
+- `thread_viewed` - 180 дней;
+- `thread_created`, `post_created`, `comment_created`, `post_liked`, `comment_liked` - 730 дней;
+- неизвестные типы событий - 365 дней.
+
+Для обучения и аналитики ClickHouse также хранит дневные агрегаты дольше сырых событий:
+
+- `papaya_analytics.user_thread_event_daily` - матрица `user_id x thread_id x event_type`;
+- `papaya_analytics.recommendation_event_daily` - дневные impressions, clicks и суммы позиций по `model_version`;
+- `papaya_analytics.recommendation_event_daily_stats` - view с CTR и средней позицией;
+- срок хранения агрегатов - 2 года.
+
+Основной источник для обучения модели - агрегированные таблицы; `user_events` используется для отладки и коротких окон.
+
 Запустить миграции вручную можно так:
 
 ```bash

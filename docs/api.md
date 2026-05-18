@@ -150,6 +150,11 @@ Backend собирает поведенческие события в ClickHouse
 - `post_liked`;
 - `comment_liked`.
 
+Зарезервированные типы для будущих рекомендаций:
+
+- `recommendation_impression`;
+- `recommendation_clicked`.
+
 Просмотр треда записывается отдельным endpoint:
 
 ```http
@@ -157,3 +162,19 @@ POST /api/v1/analytics/thread/:id/view
 ```
 
 Endpoint требует авторизацию и права чтения тредов. Остальные события пишутся backend автоматически после успешного создания треда, поста, комментария или лайка.
+
+Retention сырых событий задается ClickHouse TTL в миграциях:
+
+- `recommendation_impression` - 60 дней;
+- `recommendation_clicked` - 365 дней;
+- `thread_viewed` - 180 дней;
+- `thread_created`, `post_created`, `comment_created`, `post_liked`, `comment_liked` - 730 дней;
+- неизвестные типы событий - 365 дней.
+
+Дневные агрегаты строятся автоматически materialized views:
+
+- `papaya_analytics.user_thread_event_daily` - `user_id x thread_id x event_type`;
+- `papaya_analytics.recommendation_event_daily` - impressions, clicks и позиции по `model_version`;
+- `papaya_analytics.recommendation_event_daily_stats` - view с CTR и средней позицией.
+
+Агрегаты хранятся 2 года и являются основным источником для обучения модели. Сырые события используются для отладки и коротких аналитических окон.
