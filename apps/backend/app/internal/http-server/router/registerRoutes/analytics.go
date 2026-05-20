@@ -9,4 +9,5 @@ import (
 
 func Analytics(group *gin.RouterGroup) {
 	group.POST("/thread/:id/view", rbac.Require(rbac.ResourceThreads, rbac.ActionRead), analyticsController.Impl{}.RecordThreadView)
+	group.POST("/recommendations/event", rbac.Require(rbac.ResourceThreads, rbac.ActionRead), analyticsController.Impl{}.RecordRecommendationEvent)
 }

@@ -60,6 +60,7 @@ import {MarkdownEditor} from '@/shared/Components/Markdown';
 import {StatePanel} from '@/shared/Components/StatePanel';
 import {useSearchPosts} from '@/entities/post/queries/useSearchPosts';
 import {recordThreadView} from '@/entities/thread/api/recordThreadView';
+import {ThreadRecommendationsBlock} from '@/entities/recommendation';
 
 const ThreadPage = ({params}: {params: {id: string}}) => {
   const router = useRouter();
@@ -522,16 +523,14 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
                   </Menu.Root>
                 ) : null}
               </Flex>
-              <Card.Description>
-                <Box display="flex" gap="2">
-                  {(thread.categories ?? []).map(categorie => (
-                    <Tag key={categorie} colorScheme="purple">
-                      {categorie}
-                    </Tag>
-                  ))}
-                </Box>
-              </Card.Description>
-              <Card.Description mt="2" fontFamily="Roboto, Arial, sans-serif">
+              <Box display="flex" gap="2" flexWrap="wrap">
+                {(thread.categories ?? []).map(categorie => (
+                  <Tag key={categorie} colorScheme="purple">
+                    {categorie}
+                  </Tag>
+                ))}
+              </Box>
+              <Box mt="2" fontFamily="Roboto, Arial, sans-serif" color="gray.600">
                 <Flex align="center" gap="3" wrap="wrap">
                   <Flex align="center" as="span" gap="1">
                     <UserRound size={14} />
@@ -548,7 +547,7 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
                     getFormattedDate(thread.CreatedAt)
                   )}
                 </Flex>
-              </Card.Description>
+              </Box>
               <AttachmentGrid attachments={thread.attachments} />
               {deleteThreadError ? (
                 <Box color="red.500" marginTop="0.75rem">
@@ -559,6 +558,15 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
           )}
         </Card.Body>
       </Card.Root>
+      <Box marginTop="1.5rem">
+        <ThreadRecommendationsBlock
+          title="Похожие рекомендации модели"
+          placement="thread_recommendations"
+          enabled={canFetchThread}
+          limit={4}
+          excludeThreadId={thread.ID}
+        />
+      </Box>
       {createPostError ? <Box color="red.500">{createPostError}</Box> : null}
       <Box marginTop="1.5rem" position="relative" maxWidth="32rem">
         <Box

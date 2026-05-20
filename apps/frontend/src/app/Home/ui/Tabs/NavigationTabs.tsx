@@ -34,6 +34,7 @@ import {
 import {useGetThreads} from '@/entities/thread/queries/useGetThreads';
 import {useSearchThreads} from '@/entities/thread/queries/useSearchThreads';
 import {Search} from 'lucide-react';
+import {ThreadRecommendationsBlock} from '@/entities/recommendation';
 
 const NavigationTabs = () => {
   const isAuthenticated = useValidate();
@@ -223,6 +224,14 @@ const NavigationTabs = () => {
                 />
               </Box>
             </HStack>
+            {!normalizedThreadSearch ? (
+              <ThreadRecommendationsBlock
+                title="Рекомендации модели"
+                placement="home_recommendations"
+                enabled={canFetchThreads}
+                limit={5}
+              />
+            ) : null}
             <ThreadsTable
               threads={visibleThreads}
               loaded={threadsLoaded}

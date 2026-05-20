@@ -178,3 +178,82 @@ Retention сырых событий задается ClickHouse TTL в мигр�
 - `papaya_analytics.recommendation_event_daily_stats` - view с CTR и средней позицией.
 
 Агрегаты хранятся 2 года и являются основным источником для обучения модели. Сырые события используются для отладки и коротких аналитических окон.
+
+## Хранилища и serving рекомендаций
+
+Актуальная online-выдача не хранится в Redis. Backend вызывает FastAPI recommender service, service загружает selected winner artifact и генерирует выдачу моделью на request path.
+
+ClickHouse хранит историю и статусы запусков:
+
+- `papaya_analytics.recommendation_history` - snapshot выданных рекомендаций с `user_id`, `thread_id`, `score`, `model_version`, `run_id`, `generated_at`, `rank`, `source`;
+- `papaya_analytics.recommendation_runs` - статус обучения/генерации, счетчики, метрики и ошибки.
+
+PostgreSQL не используется как serving-хранилище рекомендаций и остается источником бизнес-данных форума.
+
+## Получение рекомендаций
+
+```http
+GET /api/v1/recommendations/threads?limit=10
+```
+
+Endpoint требует авторизацию. Backend отправляет authenticated user id и `limit` в FastAPI recommender service, получает ranked thread ids и metadata, затем подгружает треды и авторов из PostgreSQL и отбрасывает отсутствующие или удаленные треды.
+
+Ответ с готовой выдачей:
+
+```json
+{
+  "status": "ready",
+  "model_version": "entity-feature-v1",
+  "generated_at": "2026-05-19T12:00:00Z",
+  "run_id": "uuid",
+  "generation_id": "uuid",
+  "recommendations": [
+    {
+      "thread": {"ID": "uuid", "title": "Go profiling #1"},
+      "score": 113.6,
+      "recommendation_source": "model",
+      "model_version": "entity-feature-v1",
+      "generated_at": "2026-05-19T12:00:00Z",
+      "run_id": "uuid",
+      "generation_id": "uuid"
+    }
+  ]
+}
+```
+
+Если модель еще не обучена или service недоступен, endpoint возвращает `200` с пустым списком и статусом `model_not_ready`; если model path не нашел кандидатов, возвращается `no_recommendations`. Неавторизованный запрос получает `401`.
+
+События аналитики рекомендаций пишутся через:
+
+```http
+POST /api/v1/analytics/recommendations/event
+```
+
+Payload разделяет причину выдачи и место показа:
+
+```json
+{
+  "event_type": "recommendation_impression",
+  "thread_id": "uuid",
+  "model_version": "entity-feature-v1",
+  "position": 1,
+  "recommendation_source": "model",
+  "placement": "home_recommendations",
+  "run_id": "uuid",
+  "generation_id": "uuid"
+}
+```
+
+## Большой тест рекомендаций
+
+Синтетический fixture запускается командой:
+
+```bash
+cd apps/recommender
+uv run python -m recommender.synthetic \
+  --seed 9400 \
+  --include-evaluation \
+  --output ../../docs/recommendation-big-test-report.json
+```
+
+JSON содержит seed, параметры датасета, объемы PostgreSQL/ClickHouse-like данных, train/test split без утечки будущих событий в train, метрики `precision@k`, `recall@k`, `hit rate@k`, `NDCG@k`, `MAP@k`, coverage, diversity, novelty, personalization, CTR, baseline comparison и top-N рекомендации по тестовым пользователям. Единый человекочитаемый отчет для защиты хранится в корне проекта: `recommendation-model-report.md`.

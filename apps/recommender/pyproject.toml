@@ -1,0 +1,45 @@
+[project]
+name = "papaya-recommender"
+version = "0.1.0"
+description = "Python recommendation pipeline for Papaya forum threads."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "clickhouse-connect>=0.7,<1",
+    "fastapi>=0.115,<1",
+    "joblib>=1.3,<2",
+    "numpy>=1.26,<3",
+    "polars>=0.20,<2",
+    "psycopg[binary]>=3,<4",
+    "pytest>=8,<9",
+    "python-dotenv>=1,<2",
+    "scikit-learn>=1.4,<2",
+    "scipy>=1.11,<2",
+    "sqlalchemy>=2,<3",
+    "uvicorn>=0.30,<1",
+]
+
+[project.optional-dependencies]
+content = [
+    "faiss-cpu>=1.8,<2",
+    "sentence-transformers>=3,<6",
+]
+
+[project.scripts]
+recommender-generate = "recommender.generate_recommendations:main"
+recommender-import-stackexchange = "recommender.import_stackexchange_fixture:main"
+recommender-report = "recommender.reporting:main"
+recommender-serve = "recommender.api:main"
+recommender-train = "recommender.train_model:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["recommender"]
+py-modules = ["generate_recommendations", "train_model"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

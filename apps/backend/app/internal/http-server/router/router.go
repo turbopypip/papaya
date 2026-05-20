@@ -56,6 +56,11 @@ func InitRouter() *gin.Engine {
 	analyticsRoutes.Use(middleware.Auth)
 	registerRoutes.Analytics(analyticsRoutes)
 
+	// Recommendations
+	recommendationRoutes := api.Group("/recommendations")
+	recommendationRoutes.Use(middleware.Auth)
+	registerRoutes.Recommendation(recommendationRoutes)
+
 	// Role
 	roleRoutes := api.Group("/role")
 	roleRoutes.Use(middleware.Auth)

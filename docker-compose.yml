@@ -14,6 +14,7 @@ services:
       CLICKHOUSE_DB: papaya_analytics
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-papaya}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-papaya_analytics_password}
+      RECOMMENDER_SERVICE_URL: ${RECOMMENDER_SERVICE_URL:-http://recommender-service:8000}
     volumes:
       - ./apps/backend/app/config:/config:ro
       - ./apps/backend/uploads:/uploads
@@ -28,6 +29,8 @@ services:
         condition: service_healthy
       clickhouse-migrate:
         condition: service_completed_successfully
+      recommender-service:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8888/api/v1/ping | grep -q pong"]
       interval: 10s
@@ -119,6 +122,96 @@ services:
         "-database=clickhouse://clickhouse:9000?username=${CLICKHOUSE_USER:-papaya}&password=${CLICKHOUSE_PASSWORD:-papaya_analytics_password}",
         "up"
       ]
+    restart: "no"
+
+  recommender-service:
+    build:
+      context: ./apps/recommender
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+      CLICKHOUSE_HTTP_HOST: clickhouse
+      CLICKHOUSE_HTTP_PORT: 8123
+      CLICKHOUSE_DB: papaya_analytics
+      RECOMMENDER_ARTIFACTS_DIR: /app/apps/recommender/artifacts
+      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-winner}
+      RECOMMENDER_CONTENT_ENABLED: ${RECOMMENDER_CONTENT_ENABLED:-true}
+      OPENBLAS_NUM_THREADS: "1"
+    volumes:
+      - ./apps/recommender/artifacts:/app/apps/recommender/artifacts
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      clickhouse-migrate:
+        condition: service_completed_successfully
+    command: ["uv", "run", "python", "-m", "recommender.api", "--host", "0.0.0.0", "--port", "8000"]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  recommender-train:
+    profiles: ["jobs"]
+    build:
+      context: ./apps/recommender
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+      CLICKHOUSE_HTTP_HOST: clickhouse
+      CLICKHOUSE_HTTP_PORT: 8123
+      CLICKHOUSE_DB: papaya_analytics
+      RECOMMENDER_ARTIFACTS_DIR: /app/apps/recommender/artifacts
+      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-winner}
+      RECOMMENDER_CONTENT_ENABLED: ${RECOMMENDER_CONTENT_ENABLED:-true}
+      OPENBLAS_NUM_THREADS: "1"
+    volumes:
+      - ./apps/recommender/artifacts:/app/apps/recommender/artifacts
+    depends_on:
+      db:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      clickhouse-migrate:
+        condition: service_completed_successfully
+    command: ["uv", "run", "python", "-m", "recommender.train_model"]
+    restart: "no"
+
+  recommender-generate:
+    profiles: ["jobs"]
+    build:
+      context: ./apps/recommender
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+      CLICKHOUSE_HTTP_HOST: clickhouse
+      CLICKHOUSE_HTTP_PORT: 8123
+      CLICKHOUSE_DB: papaya_analytics
+      RECOMMENDER_ARTIFACTS_DIR: /app/apps/recommender/artifacts
+      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-winner}
+      RECOMMENDER_CONTENT_ENABLED: ${RECOMMENDER_CONTENT_ENABLED:-true}
+      OPENBLAS_NUM_THREADS: "1"
+    volumes:
+      - ./apps/recommender/artifacts:/app/apps/recommender/artifacts
+    depends_on:
+      db:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      clickhouse-migrate:
+        condition: service_completed_successfully
+    command: ["uv", "run", "python", "-m", "recommender.generate_recommendations"]
     restart: "no"
 
 volumes:
