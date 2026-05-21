@@ -5,6 +5,7 @@
 project.md
 tasks.md
 recommendation-model-report.md
+docs/recommendation-big-test-report.json
 *.docx
 
 # Environment files
