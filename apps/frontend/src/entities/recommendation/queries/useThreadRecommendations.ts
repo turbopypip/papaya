@@ -9,8 +9,10 @@ export const useThreadRecommendations = (
     queryKey: ['threadRecommendations', limit],
     queryFn: () => getThreadRecommendations(limit),
     enabled,
-    refetchInterval: enabled ? 30000 : false,
-    refetchIntervalInBackground: false,
+    retry: 1,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
   });
 
   return {

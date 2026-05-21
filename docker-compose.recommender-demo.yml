@@ -38,7 +38,7 @@ services:
       CLICKHOUSE_DB: papaya_analytics
       RECOMMENDER_MODEL_VERSION: demo-synthetic-v1
       RECOMMENDER_ARTIFACTS_DIR: /app/apps/recommender/artifacts
-      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-winner}
+      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-catboost_ranker}
       RECOMMENDER_CONTENT_ENABLED: ${RECOMMENDER_CONTENT_ENABLED:-true}
       OPENBLAS_NUM_THREADS: "1"
     volumes:
@@ -77,7 +77,7 @@ services:
       CLICKHOUSE_DB: papaya_analytics
       RECOMMENDER_MODEL_VERSION: demo-synthetic-v1
       RECOMMENDER_ARTIFACTS_DIR: /app/apps/recommender/artifacts
-      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-winner}
+      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-catboost_ranker}
       RECOMMENDER_CONTENT_ENABLED: ${RECOMMENDER_CONTENT_ENABLED:-true}
       OPENBLAS_NUM_THREADS: "1"
     volumes:
@@ -101,7 +101,7 @@ services:
       CLICKHOUSE_DB: papaya_analytics
       RECOMMENDER_MODEL_VERSION: demo-synthetic-v1
       RECOMMENDER_ARTIFACTS_DIR: /app/apps/recommender/artifacts
-      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-winner}
+      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-catboost_ranker}
       RECOMMENDER_CONTENT_ENABLED: ${RECOMMENDER_CONTENT_ENABLED:-true}
       OPENBLAS_NUM_THREADS: "1"
     volumes:
@@ -126,7 +126,7 @@ services:
       CLICKHOUSE_DB: papaya_analytics
       RECOMMENDER_MODEL_VERSION: demo-synthetic-v1
       RECOMMENDER_ARTIFACTS_DIR: /app/apps/recommender/artifacts
-      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-winner}
+      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-catboost_ranker}
       RECOMMENDER_CONTENT_ENABLED: ${RECOMMENDER_CONTENT_ENABLED:-true}
       OPENBLAS_NUM_THREADS: "1"
     volumes:

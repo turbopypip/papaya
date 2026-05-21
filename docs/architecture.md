@@ -1,34 +1,36 @@
-# Architecture
+# Архитектура
 
-Papaya is organized as a monorepo.
+Papaya организован как monorepo.
 
-- `apps/backend` contains the Go API.
-- `apps/frontend` contains the Next.js application.
-- `infra/docker` is reserved for Docker and deployment-related files.
-- Root `docker-compose.yml` starts the full local stack.
+- `apps/backend` содержит Go API.
+- `apps/frontend` содержит Next.js приложение.
+- `apps/recommender` содержит Python-пайплайн обучения, генерации, отчетов и online-serving.
+- Корневой `docker-compose.yml` поднимает полный локальный стек.
 
-## Recommendation Data Flow
+## Поток Данных Рекомендаций
 
-The recommendation system separates operational forum data from behavioral analytics and online serving data.
+Рекомендательная система разделяет операционные данные форума, поведенческую аналитику и online-выдачу.
 
-PostgreSQL stores only forum business data: users, roles, threads, posts, comments, likes, and attachments. It is the source of truth for thread details, authors, permissions, and other data needed to render the forum, but it does not store recommendation history, model runs, or serving state.
+PostgreSQL хранит только бизнес-данные форума: пользователей, роли, треды, посты, комментарии, лайки и вложения. Это источник истины для деталей тредов, авторов, прав доступа и данных, которые нужны для отображения форума. PostgreSQL не хранит историю рекомендаций, запуски модели и состояние serving-а.
 
-ClickHouse stores append-only behavioral events, daily aggregates, recommendation serving history, `recommendation_runs`, and model metrics. The backend writes analytics events through a dedicated service, and failed analytics writes are logged without failing the forum operation. Raw ClickHouse events have TTL-based retention: impressions are kept for 60 days, recommendation clicks for 365 days, thread views for 180 days, strong forum events for 730 days, and unknown event types for 365 days. Daily aggregate tables keep `user_id x thread_id x event_type` and recommendation metrics for 2 years; these aggregates are the primary source for model training, while raw events are for debugging and short-window analysis. For production load, the analytics service can be extended with a durable buffer or queue between forum handlers and ClickHouse.
+ClickHouse хранит append-only поведенческие события, дневные агрегаты, историю выданных рекомендаций, `recommendation_runs` и метрики модели. Backend пишет события аналитики через отдельный сервис; если запись в ClickHouse не удалась, ошибка логируется, но пользовательская операция форума не падает. Сырые события ClickHouse имеют TTL: impressions хранятся 60 дней, клики по рекомендациям - 365 дней, просмотры тредов - 180 дней, сильные форумные события - 730 дней, неизвестные типы событий - 365 дней. Дневные агрегаты `user_id x thread_id x event_type` и метрики рекомендаций хранятся 2 года. Агрегаты являются основным источником для обучения модели, а сырые события используются для отладки и коротких аналитических окон. Для production-нагрузки сервис аналитики можно расширить durable buffer или очередью между handlers форума и ClickHouse.
 
-Redis is used by the backend for forum caching, not as the target recommendation serving store. Recommendation serving happens through the FastAPI recommender service, while durable history and model metrics belong in ClickHouse.
+Redis используется backend-ом для кэша форума, но не является serving-хранилищем рекомендаций. Online-выдача строится через FastAPI recommender service, а долговременная история и метрики модели находятся в ClickHouse.
 
-The Python recommender reads forum entities from PostgreSQL and behavioral features from ClickHouse. Training writes the selected winner artifact. The FastAPI service loads that artifact and generates ranked thread ids on request. Offline generation writes recommendation history, `recommendation_runs`, and run metrics to ClickHouse.
+Python recommender читает форумные сущности из PostgreSQL и поведенческие признаки из ClickHouse. Обучение записывает production-artifact CatBoostRanker. FastAPI service загружает этот artifact и по запросу генерирует ранжированный список `thread_id`. Предсказания CatBoost `YetiRank` публикуются как `score=-catboost_prediction`, поэтому большее публичное значение `score` всегда означает более высокий ранг. Request-time serving использует модель после того, как у пользователя накопилось минимум `RECOMMENDER_MIN_MODEL_INTERACTIONS` сильных сигналов, по умолчанию `20`; до этого возвращается явно помеченный fallback. Offline generation пишет историю рекомендаций, `recommendation_runs` и метрики запусков в ClickHouse.
 
-The backend recommendations endpoint calls the FastAPI recommender service for ranked thread ids, scores, `recommendation_source`, `model_version`, `run_id`/`generation_id`, then loads thread details and author data from PostgreSQL before returning the response to the frontend.
+Backend endpoint рекомендаций вызывает FastAPI recommender service, получает ранжированные `thread_id`, `score`, `recommendation_source`, `model_version`, `run_id`/`generation_id`, затем догружает детали тредов и авторов из PostgreSQL и возвращает ответ frontend-у. Текущий frontend показывает рекомендации только на главной странице (`placement=home_recommendations`); страницы тредов записывают `thread_viewed`, но не рендерят дополнительный блок рекомендаций.
 
-## Recommender Module
+## Модуль Recommender
 
-`apps/recommender` is a Python module with a two-step pipeline:
+`apps/recommender` - Python-модуль с пайплайном обучения, генерации и online-serving:
 
-- `train_model.py` loads users, threads, posts, comments, likes, ClickHouse events, and daily aggregates; builds a decayed implicit-feedback matrix; selects a winner across the four 9.2 candidates when no winner artifact exists, otherwise retrains only the saved winner model type; and saves the champion artifact plus a human-readable report.
-- `generate_recommendations.py` loads the champion artifact, builds top-N thread recommendations from that one ML model, excludes already-seen and own threads, applies explicitly marked fallback baselines only for cold-start/sparse-history users or empty model output, and persists recommendation history in ClickHouse.
-- `api.py` exposes FastAPI request-time serving. It loads the winner artifact, regenerates current behavior context from PostgreSQL and ClickHouse, and returns `thread_id`, `score`, `recommendation_source`, `model_version`, `run_id`/`generation_id`, and metadata for analytics.
+- `train_model.py` загружает пользователей, треды, посты, комментарии, лайки, события ClickHouse и дневные агрегаты; строит user/thread/pair признаки для CatBoostRanker; обучает одну модель `catboost_ranker` с ranking groups; сохраняет модель и feature schema.
+- `generate_recommendations.py` загружает CatBoostRanker artifact, строит top-N рекомендации по текущему PostgreSQL-каталогу, исключает собственные и уже потребленные треды, применяет явно помеченные fallback baselines только для cold-start/sparse-history пользователей или пустого model output, затем сохраняет историю рекомендаций в ClickHouse.
+- `api.py` предоставляет FastAPI request-time serving. Он загружает CatBoostRanker artifact, заново собирает актуальный поведенческий контекст из PostgreSQL и ClickHouse, скорит текущих кандидатов и возвращает `thread_id`, `score`, `recommendation_source`, `model_version`, `run_id`/`generation_id` и metadata для аналитики.
 
-The 9.2 selection candidates are `entity_feature_sgd`, `learning_to_rank_sgd`, `factorization_machine_svd`, and `two_tower_dot`. `RECOMMENDER_MODEL_TYPE=winner` is the default: it uses the saved winner after selection, while `auto`/`compare` is reserved for explicit offline comparison. Baselines are kept for comparison and fallback only: `popular_recent`, `category_popular`, and `latest_active`. Offline reports include Recall@K, NDCG@K, MAP@K, HitRate@K, coverage, diversity, novelty, personalization, champion score, model selection guardrails, and content-aware guardrails.
+Сильные пользовательские сигналы для активации модели: просмотры тредов, лайки постов/комментариев, клики по рекомендациям, созданные посты и созданные комментарии. Recommendation impressions сохраняются для аналитики и CTR-метрик, но не считаются сигналами активации model-выдачи. Фильтр потребленных кандидатов исключает треды, которые пользователь создал, просмотрел, лайкнул или открыл из рекомендации.
 
-The content-aware retrieval layer builds embeddings from `title + categories + content`. It uses `sentence-transformers` and FAISS when those optional packages are installed, and falls back to sklearn hashing plus numpy search for CPU-only Docker demos. Embeddings are cached by `content_hash` and reused from disk, so heavy embedding/index work stays in offline recommender jobs and out of the backend request path.
+Production model type зафиксирован как `catboost_ranker`. Matrix-only SVD, SGD, two-tower и код сравнения моделей являются историческими/offline-only частями и не используются в обычных train/generate/serve jobs. Baselines оставлены только для явного fallback: `popular_recent`, `category_popular`, `latest_active`. Offline-отчеты включают sampled-ranking Precision@K, Recall@K, NDCG@K, MAP@K, HitRate@K, full-catalog sanity metrics, coverage, diversity, novelty, personalization, score-distribution статистику, `pairwise_auc`, `catboost_ranker_score` и content-aware guardrails.
+
+Content-aware retrieval layer строит embeddings из `title + categories + content`. Если установлены optional packages, используются `sentence-transformers` и FAISS; в CPU-only Docker demo включается fallback на sklearn hashing и numpy search. Embeddings кэшируются по `content_hash` и переиспользуются с диска, поэтому тяжелая работа с embeddings/index остается в offline recommender jobs и не попадает в backend request path.

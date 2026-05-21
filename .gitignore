@@ -5,6 +5,7 @@
 project.md
 tasks.md
 recommendation-model-report.md
+*.docx
 
 # Environment files
 .env

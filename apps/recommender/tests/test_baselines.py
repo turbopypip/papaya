@@ -123,6 +123,94 @@ def test_normal_user_gets_model_only_without_baseline_mixing():
     assert recommendations["user-1"] == [("go-new", 0.9, "model")]
 
 
+def test_recommendations_never_emit_threads_outside_current_catalog():
+    now = datetime(2026, 5, 19, tzinfo=timezone.utc)
+    threads = pl.DataFrame(
+        {
+            "thread_id": ["go-seen", "go-new"],
+            "title": ["Go channels", "Go profiling"],
+            "categories": [["go"], ["go"]],
+            "author_user_id": ["author-1", "author-2"],
+            "created_at": [now, now],
+            "updated_at": [now, now],
+        }
+    )
+    interactions = pl.DataFrame(
+        {
+            "user_id": ["user-1", "user-2", "user-3"],
+            "thread_id": ["go-seen", "go-new", "ghost-thread"],
+            "score": [3.0, 2.0, 4.0],
+            "last_event_at": [now, now, now],
+            "events_count": [25.0, 3.0, 50.0],
+        }
+    )
+    matrix = InteractionMatrix(
+        matrix=build_interaction_matrix(interactions).matrix,
+        user_to_index={"user-1": 0, "user-2": 1, "user-3": 2},
+        thread_to_index={"ghost-thread": 0, "go-new": 1, "go-seen": 2},
+        index_to_user={0: "user-1", 1: "user-2", 2: "user-3"},
+        index_to_thread={0: "ghost-thread", 1: "go-new", 2: "go-seen"},
+    )
+
+    class FakeModel:
+        def recommend(self, user_index, user_items, N, filter_already_liked_items=True):
+            return np.array([0, 1]), np.array([0.99, 0.8])
+
+    recommendations = generate_for_users(
+        ["user-1"],
+        threads,
+        interactions,
+        matrix,
+        ModelResult(model=FakeModel(), model_type="entity_feature_sgd", trained=True),
+        top_n=2,
+        candidate_pool_size=10,
+        min_model_interactions=1,
+    )
+
+    assert recommendations["user-1"] == [("go-new", 0.8, "model")]
+
+
+def test_recommendation_impressions_do_not_exclude_unopened_threads():
+    now = datetime(2026, 5, 19, tzinfo=timezone.utc)
+    threads = pl.DataFrame(
+        {
+            "thread_id": ["impressed", "other"],
+            "title": ["Go profiling", "React hooks"],
+            "categories": [["go"], ["react"]],
+            "author_user_id": ["author-1", "author-2"],
+            "created_at": [now, now],
+            "updated_at": [now, now],
+        }
+    )
+    interactions = pl.DataFrame(
+        {
+            "user_id": ["user-1"],
+            "thread_id": ["impressed"],
+            "score": [0.1],
+            "last_event_at": [now],
+            "events_count": [2.0],
+            "thread_viewed_count": [0.0],
+            "like_count": [0.0],
+            "recommendation_clicked_count": [0.0],
+        }
+    )
+    matrix = build_interaction_matrix(interactions)
+
+    recommendations = generate_for_users(
+        ["user-1"],
+        threads,
+        interactions,
+        matrix,
+        ModelResult(model=None, model_type="test", trained=False),
+        top_n=2,
+        candidate_pool_size=10,
+        min_model_interactions=20,
+    )
+
+    assert recommendations["user-1"][0][0] == "impressed"
+    assert recommendations["user-1"][0][2].startswith("fallback_")
+
+
 def test_thread_affinity_uses_title_categories_and_author_signals():
     now = datetime(2026, 5, 19)
     threads = pl.DataFrame(

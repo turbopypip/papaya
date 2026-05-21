@@ -7,11 +7,15 @@ from typing import Any
 import polars as pl
 
 from recommender.baselines import category_popular, latest_active, popular_recent
-from recommender.content import build_or_load_content_index, content_recommendations_for_user, performance_guardrails
+from recommender.catboost_ranker import (
+    MODEL_TYPE,
+    evaluate_catboost_ranker,
+    generate_catboost_for_users,
+    train_catboost_ranker,
+)
+from recommender.content import build_or_load_content_index, performance_guardrails
 from recommender.etl import prepare_data
-from recommender.matrix import build_interaction_matrix
 from recommender.metrics import ranking_report
-from recommender.recommendations import generate_for_users
 from recommender.recommendations import excluded_threads_for_user
 from recommender.serving import relevant_threads_by_user, thread_categories
 from recommender.synthetic import SyntheticForumDataset
@@ -101,7 +105,7 @@ def big_test_user_examples(
 
 def build_big_test_evaluation_report(
     dataset: SyntheticForumDataset,
-    model_version: str = "entity-feature-v1",
+    model_version: str = "catboost-ranker-v1",
     top_n: int = 10,
     candidate_pool_size: int = 50,
     half_life_days: float = 21.0,
@@ -109,78 +113,49 @@ def build_big_test_evaluation_report(
     random_state: int = 42,
     now: datetime | None = None,
 ) -> dict[str, Any]:
-    from recommender.champion import evaluate_and_select_champion, selection_to_metrics
-
     prepared = prepare_data(dataset.business, dataset.behavior, half_life_days=half_life_days, now=now)
-    matrix = build_interaction_matrix(prepared.train_interactions)
-    selection = evaluate_and_select_champion(
-        matrix,
-        dataset.business.users,
-        dataset.business.threads,
+    model = train_catboost_ranker(
+        dataset.business,
         prepared.train_interactions,
-        prepared.test_interactions,
-        prepared.interactions,
-        top_n=top_n,
-        candidate_pool_size=candidate_pool_size,
         random_state=random_state,
-        k=top_n,
-        candidate_model_types=("entity_feature", "learning_to_rank", "factorization_machine", "two_tower"),
+        top_n=top_n,
     )
-    model = selection.model_result
     content_index = build_or_load_content_index(
         dataset.business.threads,
         artifacts_dir=RECOMMENDER_ROOT / "artifacts",
     )
     user_ids = dataset.business.users.get_column("user_id").to_list()
-    generated = generate_for_users(
+    generated = generate_catboost_for_users(
         user_ids,
-        dataset.business.threads,
+        dataset.business,
         prepared.train_interactions,
-        matrix,
         model,
         top_n=top_n,
         candidate_pool_size=candidate_pool_size,
         min_model_interactions=min_model_interactions,
-        content_index=content_index,
     )
-    model_recommendations = {
-        user_id: [thread_id for thread_id, _score, _source in items]
-        for user_id, items in generated.items()
-    }
-    baselines = baseline_recommendation_sets(user_ids, dataset.business.threads, prepared.train_interactions, top_n=top_n)
-    content_only = {
-        user_id: [
-            thread_id
-            for thread_id, _score in content_recommendations_for_user(
-                user_id,
-                prepared.train_interactions,
-                content_index,
-                top_n,
-                excluded_threads_for_user(user_id, prepared.train_interactions, dataset.business.threads),
-            )
-        ]
-        for user_id in user_ids
-    }
-    metric_key = selection.model_type
-    metrics = evaluate_recommendation_sets(
-        {metric_key: model_recommendations, "content_only": content_only, **baselines},
+    metrics = evaluate_catboost_ranker(
+        model,
+        dataset.business,
+        prepared.train_interactions,
         prepared.test_interactions,
-        set(dataset.business.threads.get_column("thread_id").to_list()),
-        thread_categories(dataset.business.threads),
-        popularity_by_thread(prepared.interactions),
+        top_n=top_n,
+        candidate_pool_size=candidate_pool_size,
+        min_model_interactions=min_model_interactions,
         k=top_n,
     )
     return {
         "model_version": model_version,
-        "model_type": metric_key,
+        "model_type": MODEL_TYPE,
         "model_trained": model.trained,
-        "final_pipeline_model_type": metric_key,
-        "final_pipeline_uses_winner": metric_key == selection.model_type,
+        "feature_schema_version": model.feature_schema.version,
+        "final_pipeline_model_type": MODEL_TYPE,
+        "final_pipeline_uses_winner": False,
+        "model_selection_enabled": False,
         "normal_sources": sorted({source for items in generated.values() for _thread_id, _score, source in items}),
-        "champion": selection_to_metrics(selection),
+        "hyperparameters": model.hyperparameters,
         "top_n": top_n,
-        "metrics": metrics[metric_key],
-        "baseline_comparison": metrics,
+        "metrics": metrics,
         "content_guardrails": performance_guardrails(content_index, 0.0),
         "users": _evaluation_user_rows(generated, dataset, prepared.train_interactions, top_n=top_n),
     }

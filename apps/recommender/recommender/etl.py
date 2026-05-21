@@ -183,6 +183,16 @@ def build_interactions(
             .otherwise(0.0)
             .sum()
             .alias("recommendation_clicked_count"),
+            pl.when(pl.col("event_type") == "post_created")
+            .then(pl.col("event_count"))
+            .otherwise(0.0)
+            .sum()
+            .alias("post_created_count"),
+            pl.when(pl.col("event_type") == "comment_created")
+            .then(pl.col("event_count"))
+            .otherwise(0.0)
+            .sum()
+            .alias("comment_created_count"),
         )
         .filter(pl.col("score") > 0)
         .collect()

@@ -90,6 +90,42 @@ func TestGetThreadRecommendationsReturnsModelNotReadyWhenServiceUnavailable(t *t
 	}
 }
 
+func TestGetThreadRecommendationsReturnsNoRecommendationsForEmptyCatalog(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	defer setRecommendationServiceForTest(successfulRecommendationService{
+		response: serviceRecommendationsResponse{
+			Status:          statusNoRecommendations,
+			Recommendations: []serviceRecommendationItem{},
+			ModelVersion:    "winner-v1",
+			GeneratedAt:     "2026-05-20T12:00:00Z",
+			GenerationID:    "generation-1",
+		},
+	})()
+	recorder := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(recorder)
+	context.Request = httptest.NewRequest(http.MethodGet, "/api/v1/recommendations/threads", nil)
+	context.Set("user", models.User{Id: uuid.Must(uuid.NewV4())})
+
+	GetThreadRecommendations(context)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", recorder.Code)
+	}
+	var body struct {
+		Status          string               `json:"status"`
+		Recommendations []recommendationItem `json:"recommendations"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to decode body: %v", err)
+	}
+	if body.Status != statusNoRecommendations {
+		t.Fatalf("expected status %q, got %q", statusNoRecommendations, body.Status)
+	}
+	if len(body.Recommendations) != 0 {
+		t.Fatalf("expected empty recommendations, got %d", len(body.Recommendations))
+	}
+}
+
 func TestGetThreadRecommendationsReturnsServiceScoresWithThreadDetails(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := openRecommendationTestDB(t)

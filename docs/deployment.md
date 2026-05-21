@@ -1,80 +1,98 @@
-# Deployment
+# Развертывание
 
-Deployment notes will live here.
+## Локальная Проверка
 
-For local Docker verification, start with:
+Для локальной Docker-проверки используйте:
 
 ```bash
 docker compose up --build
 ```
 
-For the development stack, use:
+Это обычный production-like путь. Он запускает backend, frontend, PostgreSQL, Redis, ClickHouse, миграции ClickHouse и `recommender-service` без загрузки fixtures Stack Exchange, синтетических данных или demo-тредов. Пустые бизнес-таблицы и пустые таблицы аналитики являются валидным начальным состоянием.
+
+Для dev-стека используйте:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
-The stack includes ClickHouse for recommendation analytics. The analytics database name is fixed by migrations as `papaya_analytics`, and the `clickhouse-migrate` job applies migrations from `apps/backend/app/migrations/clickhouse` with `golang-migrate`. Configure the host, user, and password through environment variables.
+Dev-стек сохраняет тот же путь рекомендаций без датасета и добавляет только frontend hot reload и dev-пользователя. Demo-данные подключаются отдельно через `docker-compose.recommender-demo.yml`.
 
-Raw analytics events are retained through ClickHouse TTL rules:
+## ClickHouse
 
-- `recommendation_impression`: 60 days;
-- `recommendation_clicked`: 365 days;
-- `thread_viewed`: 180 days;
-- `thread_created`, `post_created`, `comment_created`, `post_liked`, `comment_liked`: 730 days;
-- unknown event types: 365 days.
+Стек включает ClickHouse для аналитики рекомендаций. Имя базы аналитики зафиксировано миграциями как `papaya_analytics`, а job `clickhouse-migrate` применяет миграции из `apps/backend/app/migrations/clickhouse` через `golang-migrate`. Host, user и password настраиваются через переменные окружения.
 
-ClickHouse keeps model-ready daily aggregates for 2 years:
+Сырые события аналитики хранятся по TTL-правилам ClickHouse:
+
+- `recommendation_impression`: 60 дней;
+- `recommendation_clicked`: 365 дней;
+- `thread_viewed`: 180 дней;
+- `thread_created`, `post_created`, `comment_created`, `post_liked`, `comment_liked`: 730 дней;
+- неизвестные типы событий: 365 дней.
+
+ClickHouse хранит дневные агрегаты, готовые для модели, в течение 2 лет:
 
 - `papaya_analytics.user_thread_event_daily`: `user_id x thread_id x event_type`;
-- `papaya_analytics.recommendation_event_daily`: recommendation impressions, clicks, and position sums by `model_version`;
-- `papaya_analytics.recommendation_event_daily_stats`: derived CTR and average position view.
+- `papaya_analytics.recommendation_event_daily`: impressions, clicks и суммы позиций по `model_version`;
+- `papaya_analytics.recommendation_event_daily_stats`: view с CTR и средней позицией.
 
-Use aggregates as the primary training source. Use raw `user_events` for debugging and short-window analysis.
+Агрегаты используются как основной источник для обучения. Сырые `user_events` нужны для отладки и коротких аналитических окон.
 
-Run ClickHouse migrations manually with:
+Запустить миграции ClickHouse вручную:
 
 ```bash
 docker compose run --rm clickhouse-migrate
 ```
 
-Useful verification queries are stored in `apps/backend/app/migrations/clickhouse/check_events.sql`.
+Полезные проверочные SQL-запросы лежат в `apps/backend/app/migrations/clickhouse/check_events.sql`.
 
-## Recommendation Training Jobs
+## Задачи Обучения Рекомендаций
 
-The Python recommender lives in `apps/recommender`.
+Python recommender находится в `apps/recommender`.
 
-Install dependencies for a local run:
+Установка зависимостей для локального запуска:
 
 ```bash
 cd apps/recommender
 uv sync
 ```
 
-Train the model:
+Обучить модель:
 
 ```bash
 cd apps/recommender
 uv run python -m recommender.train_model --env-file ../../.env
 ```
 
-Generate ClickHouse recommendation history snapshots:
+Сгенерировать snapshots истории рекомендаций в ClickHouse:
 
 ```bash
 cd apps/recommender
 uv run python -m recommender.generate_recommendations --env-file ../../.env
 ```
 
-Docker one-off jobs are also available:
+Также доступны одноразовые Docker jobs:
 
 ```bash
 docker compose run --rm recommender-train
 docker compose run --rm recommender-generate
 ```
 
-Training defaults to `RECOMMENDER_MODEL_TYPE=winner`: if no winner artifact exists, the job compares the four 9.2 candidates and saves the winner; after that, normal jobs, Docker demo jobs, pre-generated Stack Exchange fixture runs, and final big-test generation retrain/use only that winner model type. Online serving is handled by `recommender-service`, a FastAPI service that loads the winner artifact and generates recommendations on request. Backend calls `RECOMMENDER_SERVICE_URL`, receives ranked thread ids and analytics metadata, and loads thread details from PostgreSQL. Generation writes recommendation snapshots to `papaya_analytics.recommendation_history`; cold-start and sparse-history fallbacks are explicitly marked in `recommendation_source`, while UI location is sent separately as `placement`. Run status, content guardrails, and metrics are stored in `papaya_analytics.recommendation_runs`. Set `OPENBLAS_NUM_THREADS=1` for recommender jobs to keep CPU-only Docker demos predictable. The single human-readable model report for defense is generated by the separate `recommender.reporting` command and written to `recommendation-model-report.md` in the repository root.
+По умолчанию обучение использует `RECOMMENDER_MODEL_TYPE=catboost_ranker`: обычные jobs обучают и serving-ят одну production-модель CatBoostRanker без сравнения winner/champion. Artifact в `apps/recommender/artifacts/model.joblib` содержит CatBoost-модель и feature schema; `metadata.json` хранит версию модели, `feature_schema_version`, run id, параметры, `score_direction=negated_catboost_prediction` и ranking metrics. Online serving выполняет `recommender-service`: FastAPI service загружает CatBoostRanker artifact и `content_index.joblib`, логирует `model_loaded=true` и `model_version` при старте и проверяется Docker healthcheck.
 
-The content fixture can be rebuilt from Stack Exchange Data Dump `Posts.xml` and optional `Comments.xml`; question bodies, answer bodies, comments, source URLs, licenses, and attribution are preserved:
+Backend вызывает `RECOMMENDER_SERVICE_URL`, получает ранжированные thread ids и metadata аналитики, затем догружает детали тредов из PostgreSQL. Generation записывает recommendation snapshots в `papaya_analytics.recommendation_history`; cold-start и sparse-history fallbacks явно помечаются в `recommendation_source`, а UI-точка показа передается отдельно как `placement`. В текущем frontend рекомендации рендерятся только на главной странице с `placement=home_recommendations`; страницы тредов записывают просмотры, но не рендерят блок рекомендаций. Статусы запусков, content guardrails, sampled-ranking metrics, full-catalog sanity metrics, score-distribution статистика и `pairwise_auc` хранятся в `papaya_analytics.recommendation_runs`.
+
+Для CPU-only Docker demo задавайте `OPENBLAS_NUM_THREADS=1`, чтобы recommender jobs предсказуемо работали на CPU. Единый человекочитаемый отчет для защиты создается отдельной командой `recommender.reporting --input docs/recommendation-big-test-report.json` и записывается в `recommendation-model-report.md` в корне репозитория.
+
+Состояния пустой выдачи recommendation serving:
+
+- artifact отсутствует: `model_not_ready`, это не ответ пустого каталога;
+- PostgreSQL-каталог тредов пустой: `200` со статусом `no_recommendations` и пустым списком;
+- новый пользователь при наличии реальных тредов: явный source `fallback_*`, пока поведения недостаточно для model scoring.
+
+Порог активации по умолчанию: `RECOMMENDER_MIN_MODEL_INTERACTIONS=20`. Он считается по сильным пользовательским сигналам: `thread_viewed`, `post_liked`, `comment_liked`, `recommendation_clicked`, `post_created` и `comment_created`. Recommendation impressions сохраняются для аналитики и CTR, но сами по себе не включают model scoring. Serving также фильтрует собственные, просмотренные, лайкнутые и открытые из рекомендаций треды, поэтому demo-каталог должен содержать достаточно непотребленных тредов в предпочтительных категориях пользователя, чтобы персонализация была видна при ручном тестировании.
+
+Content fixture можно пересобрать из Stack Exchange Data Dump `Posts.xml` и опционального `Comments.xml`; сохраняются тексты вопросов, тексты ответов, комментарии, source URLs, licenses и attribution:
 
 ```bash
 cd apps/recommender

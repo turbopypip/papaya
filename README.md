@@ -1,74 +1,167 @@
 # Papaya
 
-Papaya - fullstack-проект форума с backend на Go и frontend на Next.js.
+Papaya - fullstack-форум с Go backend, Next.js frontend и Python-сервисом персональных рекомендаций.
+
+Проект уже собран вокруг финального продуктового пути: пользователь работает с форумом на `http://localhost:3000`, frontend обращается к Go API, backend хранит бизнес-данные в PostgreSQL, пишет поведенческую аналитику в ClickHouse и запрашивает персональные рекомендации у FastAPI recommender service.
 
 ## Структура
 
 ```text
 papaya/
 ├── apps/
-│   ├── backend/
-│   ├── frontend/
-│   └── recommender/
-├── infra/
-│   └── docker/
+│   ├── backend/      # Go API, RBAC, PostgreSQL, Redis, ClickHouse analytics
+│   ├── frontend/     # Next.js 14 приложение форума
+│   └── recommender/  # Python training, demo data, reports, FastAPI serving
 ├── docs/
+│   ├── api.md
+│   ├── architecture.md
+│   └── deployment.md
 ├── docker-compose.yml
 ├── docker-compose.dev.yml
+├── docker-compose.recommender-demo.yml
 ├── .env.example
 └── README.md
 ```
 
-## Приложения
+## Сервисы
 
-- `apps/backend` - Go API.
-- `apps/frontend` - Next.js приложение.
-- `apps/recommender` - Python pipeline обучения и генерации рекомендаций.
+| сервис | роль | порт |
+| --- | --- | --- |
+| `frontend` | Next.js UI | `3000` |
+| `backend` | Go API `/api/v1` и `/uploads` | `8888` |
+| `recommender-service` | FastAPI online recommendations | `8000` |
+| `db` | PostgreSQL business storage | `5432` |
+| `redis` | backend cache | `6379` |
+| `clickhouse` | analytics, aggregates, recommendation history | `8123`, `9000` |
+| `clickhouse-migrate` | one-off ClickHouse migrations | - |
 
-## Локальный запуск
+## Быстрый запуск
 
-Создайте локальный файл окружения:
+Создайте локальный `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-Запустите весь проект:
+Обычный Docker-запуск:
 
 ```bash
 docker compose up --build
 ```
 
-Запуск с dev-настройками:
+Обычный запуск поднимает PostgreSQL, ClickHouse, Redis, backend, frontend и `recommender-service` без demo/import датасета. PostgreSQL и ClickHouse могут быть пустыми: применяются только миграции и базовые роли, а FastAPI recommender использует готовые artifacts из `apps/recommender/artifacts`.
+
+Dev-запуск с hot reload frontend и dev-пользователем:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
+Полный demo-сценарий рекомендаций с большим синтетическим датасетом, обучением, генерацией истории и отчетом:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.recommender-demo.yml up --build
+```
+
+После старта:
+
+- frontend: `http://localhost:3000`;
+- backend healthcheck: `http://localhost:8888/api/v1/ping`;
+- recommender healthcheck: `http://localhost:8000/health`.
+
 ## Переменные окружения
 
-Шаблон переменных лежит в `.env.example`. Реальный `.env` не коммитится.
+Шаблон лежит в `.env.example`, реальный `.env` не коммитится.
 
-Основные группы переменных:
+Основные группы:
 
-- `POSTGRES_*` - подключение к PostgreSQL.
-- `REDIS_*` - подключение к Redis.
-- `CLICKHOUSE_*` - подключение к ClickHouse для поведенческих событий рекомендаций.
-- `LOCAL_CONFIG_PATH` - путь к YAML-конфигу backend внутри контейнера.
-- `SECRET` - секрет для JWT.
-- `UPLOADS_PATH` - путь для файловых вложений.
-- `DEV_USER_ROLE` - роль dev-пользователя в dev-режиме: `admin` по умолчанию или `user`.
-- `AUTH_COOKIE_*` - настройки JWT cookie: domain, secure и sameSite.
-- `SERVER_API_URL` - внутренний URL backend для Next.js proxy внутри Docker-сети.
-- `NEXT_PUBLIC_API_URL` - публичный URL backend для frontend; по умолчанию пустой, чтобы браузер ходил через Next.js proxy `/api/v1`.
+- `POSTGRES_*`, `PG_PORT` - подключение backend и recommender к PostgreSQL;
+- `REDIS_*` - Redis cache для backend;
+- `CLICKHOUSE_*` - ClickHouse analytics и HTTP-клиент recommender;
+- `LOCAL_CONFIG_PATH`, `APP_ENV`, `ENV`, `LOG_LEVEL` - режим и YAML-конфиг backend;
+- `SECRET`, `AUTH_COOKIE_*` - JWT cookie и настройки сессии;
+- `UPLOADS_PATH` - директория файловых вложений backend;
+- `DEV_USER_ROLE` - роль dev-пользователя в dev-режиме: `admin` или `user`;
+- `RECOMMENDER_*` - версия CatBoostRanker-модели, директория артефактов, top-N, content layer и timeout генерации;
+- `RECOMMENDER_SERVICE_URL` - URL FastAPI recommender service для backend. В Docker это `http://recommender-service:8000`; для локального backend без compose используйте `http://localhost:8000`;
+- `SERVER_API_URL` - backend URL для Next.js rewrites внутри Docker-сети;
+- `NEXT_PUBLIC_API_URL` - browser-facing backend URL. В dev compose он пустой, и frontend ходит через rewrites `/api/v1`; в production compose по умолчанию используется `http://localhost:8888`.
 
-## ClickHouse и миграции аналитики
+## Backend
 
-Рекомендательная система собирает append-only события в ClickHouse. Docker Compose поднимает сервис `clickhouse` и одноразовый job `clickhouse-migrate`, который применяет миграции из `apps/backend/app/migrations/clickhouse`.
+Backend находится в `apps/backend/app` и написан на Go 1.24.
 
-База аналитики фиксирована в миграциях как `papaya_analytics`; через окружение настраиваются адрес ClickHouse, пользователь и пароль.
+Он предоставляет:
 
-Сырые события в `papaya_analytics.user_events` не хранятся бессрочно. Retention задается ClickHouse TTL в миграциях:
+- auth endpoints: signup, login, logout, validate, dev-login в dev-режиме;
+- RBAC роли `user` и `admin`;
+- CRUD для тредов, постов и комментариев;
+- лайки, поиск тредов и постов;
+- файловые вложения для тредов, постов и комментариев;
+- SSE endpoint для событий треда;
+- analytics endpoints для просмотров тредов и событий рекомендаций;
+- recommendations endpoint, который обращается в FastAPI recommender service.
+
+PostgreSQL хранит пользователей, роли, треды, посты, комментарии, лайки и metadata вложений. Redis используется для backend-кэша. ClickHouse получает append-only события и агрегаты для обучения рекомендаций. Файлы сохраняются в `apps/backend/uploads` и отдаются через `/uploads`.
+
+Локальный запуск backend без compose:
+
+```bash
+cd apps/backend/app
+go mod download
+LOCAL_CONFIG_PATH=config/local.yaml go run cmd/app/main.go
+```
+
+Для такого запуска нужны доступные PostgreSQL, Redis и ClickHouse, а также переменные из корневого `.env`.
+
+Проверки:
+
+```bash
+cd apps/backend/app
+go test ./...
+```
+
+## Frontend
+
+Frontend находится в `apps/frontend` и использует Next.js 14, React 18, TypeScript, Chakra UI, TanStack Query, Zustand и Axios.
+
+Реализованы:
+
+- login/signup и dev-login в dev-режиме;
+- домашняя страница со списком тредов, поиском, созданием тредов и блоком рекомендаций;
+- страница треда с постами, комментариями, лайками, вложениями и поиском по постам; рекомендации тредов на странице треда не показываются;
+- отправка analytics events: `thread_viewed`, `recommendation_impression`, `recommendation_clicked`;
+- проксирование `/api/v1/*` и `/uploads/*` через Next.js rewrites при пустом `NEXT_PUBLIC_API_URL`.
+
+Локальный запуск frontend без compose:
+
+```bash
+cd apps/frontend
+npm install
+npm run dev
+```
+
+Если frontend запускается вне Docker, укажите публичный backend URL:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8888 npm run dev
+```
+
+Проверки:
+
+```bash
+cd apps/frontend
+npm run build
+npm run lint
+```
+
+## ClickHouse и аналитика
+
+Docker Compose поднимает `clickhouse` и одноразовый job `clickhouse-migrate`, который применяет миграции из `apps/backend/app/migrations/clickhouse`.
+
+База аналитики фиксирована миграциями как `papaya_analytics`.
+
+Сырые события в `papaya_analytics.user_events` хранятся с TTL:
 
 - `recommendation_impression` - 60 дней;
 - `recommendation_clicked` - 365 дней;
@@ -76,16 +169,13 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 - `thread_created`, `post_created`, `comment_created`, `post_liked`, `comment_liked` - 730 дней;
 - неизвестные типы событий - 365 дней.
 
-Для обучения и аналитики ClickHouse также хранит дневные агрегаты дольше сырых событий:
+Дневные агрегаты хранятся 2 года:
 
-- `papaya_analytics.user_thread_event_daily` - матрица `user_id x thread_id x event_type`;
-- `papaya_analytics.recommendation_event_daily` - дневные impressions, clicks и суммы позиций по `model_version`;
-- `papaya_analytics.recommendation_event_daily_stats` - view с CTR и средней позицией;
-- срок хранения агрегатов - 2 года.
+- `user_thread_event_daily` - матрица `user_id x thread_id x event_type`;
+- `recommendation_event_daily` - impressions, clicks и суммы позиций по `model_version`;
+- `recommendation_event_daily_stats` - view с CTR и средней позицией.
 
-Основной источник для обучения модели - агрегированные таблицы; `user_events` используется для отладки и коротких окон.
-
-Запустить миграции вручную можно так:
+Запустить миграции вручную:
 
 ```bash
 docker compose run --rm clickhouse-migrate
@@ -93,11 +183,24 @@ docker compose run --rm clickhouse-migrate
 
 Проверочные SQL-запросы лежат в `apps/backend/app/migrations/clickhouse/check_events.sql`.
 
-## Рекомендательная модель
+## Рекомендации
 
-Python recommender читает бизнес-данные из PostgreSQL, поведенческие события и агрегаты из ClickHouse, выбирает winner model из четырех кандидатов 9.2 и сохраняет артефакты в `apps/recommender/artifacts`. FastAPI recommender service загружает winner artifact и генерирует выдачу по запросу пользователя; backend запрашивает у него `thread_id`, `score`, `recommendation_source`, `model_version`, `run_id`/`generation_id`, а детали тредов и авторов по-прежнему берет из PostgreSQL. ClickHouse остается хранилищем событий, истории выдачи, статусов запусков и метрик.
+Recommender находится в `apps/recommender` и состоит из training pipeline, offline generation, demo loader/reporting и FastAPI serving.
 
-Локальный запуск:
+Normal dev/prod serving не запускает обучение, comparison или demo import. `recommender-service` при старте загружает `model.joblib`, `metadata.json` и `content_index.joblib` из artifacts, логирует `model_loaded=true` и `model_version`, а Docker healthcheck требует загруженную модель. Если artifact отсутствует, это отдельное состояние `model_not_ready`, не пустая выдача.
+
+Финальный flow:
+
+1. Backend пишет форумные события и recommendation feedback в ClickHouse.
+2. `recommender.train_model` читает PostgreSQL business data и ClickHouse behavior data.
+3. `CatBoostRanker` обучается на ranking groups по пользователям и сохраняет production artifact с feature schema.
+4. Normal train/generate/serve path всегда использует `model_type=catboost_ranker`; matrix/SVD и исторические offline candidates не участвуют в live serving.
+5. `recommender.generate_recommendations` пишет snapshots в ClickHouse `recommendation_history` и статусы/метрики в `recommendation_runs`.
+6. `recommender.api` обслуживает online request path: backend передает user id и limit, получает `thread_id`, `score`, `recommendation_source`, `model_version`, `run_id`, `generation_id`, а детали тредов догружает из PostgreSQL.
+
+CatBoost `YetiRank` prediction нормализуется в публичный score как `-catboost_prediction`, поэтому большие значения `score` всегда означают более высокий ранг. Это зафиксировано в metadata как `score_direction=negated_catboost_prediction`.
+
+Локальные команды:
 
 ```bash
 cd apps/recommender
@@ -110,75 +213,87 @@ uv run python -m recommender.api --env-file ../../.env --host 0.0.0.0 --port 800
 Docker one-off jobs:
 
 ```bash
-docker compose run --rm recommender-train
-docker compose run --rm recommender-generate
+docker compose --profile jobs run --rm recommender-train
+docker compose --profile jobs run --rm recommender-generate
 ```
 
-`recommender-generate` больше не является serving-хранилищем: он сохраняет snapshots в ClickHouse `recommendation_history` и статусы в `recommendation_runs`. Online-выдача строится FastAPI service на request path через winner model. Fallback источники помечаются как `fallback_*`; UI-точка показа передается отдельно как `placement`.
+Текущий сохраненный demo artifact:
 
-## Синтетический большой тест рекомендаций
+| поле | значение |
+| --- | --- |
+| `model_version` | `demo-synthetic-v1` |
+| production model | `catboost_ranker` |
+| normal source | `model` |
+| content backend | `sklearn_hashing` |
+| content search | `numpy` |
+| artifacts | `apps/recommender/artifacts/model.joblib`, `metadata.json`, `content_index.joblib` |
 
-Для задачи `9.4. Большие тесты` добавлен генератор синтетического пользовательского опыта: `apps/recommender/recommender/synthetic.py`.
+Текущие метрики большого отчета CatBoostRanker:
 
-Цель генератора - проверить рекомендательную модель не на случайном наборе строк, а на правдоподобной имитации жизни форума. Генератор создает пользователей, треды, посты, комментарии, лайки, просмотры, показы рекомендаций и клики по рекомендациям. Данные возвращаются в тех же структурах, которые уже использует recommender pipeline: `BusinessData` для PostgreSQL-данных и `BehaviorData` для ClickHouse-событий и агрегатов.
+| метрика | значение |
+| --- | ---: |
+| `CatBoostRanker score` | 0.5261 |
+| sampled `Precision@10` | 0.7860 |
+| sampled `Recall@10` | 0.0532 |
+| sampled `NDCG@10` | 0.7937 |
+| sampled `MAP@10` | 0.6863 |
+| sampled `Hit rate@10` | 1.0000 |
+| `pairwise_auc` | 0.7232 |
+| full-catalog `Precision@10` | 0.3980 |
+| full-catalog `NDCG@10` | 0.4031 |
+| full-catalog `Hit rate@10` | 1.0000 |
 
-Текущий реализованный масштаб smoke synthetic-теста:
+Sampled-ranking метрики считаются на held-out positive threads против sampled negative candidates. Full-catalog block дополнительно проверяет exact top-10 попадания при ранжировании всего текущего каталога.
 
-- 50 тестовых пользователей;
-- 200 тестовых тредов;
-- 1000-1200 постов;
-- 4000-6000 комментариев;
-- 12000-18000 поведенческих событий;
-- минимум 30-40 взаимодействий на пользователя.
+Fallback используется только для новых или sparse-history пользователей и всегда помечается как `fallback_*`. По умолчанию model-путь включается после `RECOMMENDER_MIN_MODEL_INTERACTIONS=20` сильных сигналов пользователя: просмотров тредов, лайков постов/комментариев, кликов по рекомендациям, созданных постов и комментариев. `recommendation_impression` пишется для аналитики, но не считается сильным сигналом для перехода из fallback в model.
 
-Текущий реализованный масштаб content-aware большого теста:
+Из кандидатов исключаются собственные треды пользователя, уже просмотренные треды, треды с лайками пользователя и треды, открытые кликом из рекомендаций. Поэтому если пользователь пролайкал все треды интересующей категории, модель будет выбирать из оставшихся кандидатов, даже если профиль интереса уже распознан. UI-точка показа передается отдельно как `placement`; текущий frontend показывает рекомендации только на главной странице с `placement=home_recommendations`.
 
-- 1000 реальных технических тредов из Stack Exchange/Stack Overflow fixture с question bodies, answer bodies, comments when available и CC BY-SA attribution;
-- около 1000 synthetic-тредов, разложенных по тематикам backend, frontend, devops, mixed и noise;
-- для каждого треда 5-50 Papaya-постов: реальные Stack Overflow question/answer posts плюс synthetic top-up для масштаба;
-- для каждого поста 1-5 Papaya-комментариев: реальные Stack Overflow comments where available плюс synthetic top-up для шума;
-- целевые объемы событий пересчитаны под новый масштаб так, чтобы у пользователей оставалось достаточно train/test взаимодействий;
-- `title + categories + content` содержит тематический сигнал для `sentence-transformers`/FAISS content layer и CPU fallback.
+Пустой каталог возвращает `200` со статусом `no_recommendations` и пустым списком. Cold-start/fallback включается только после появления реальных тредов в PostgreSQL.
 
-Fixture лежит в `apps/recommender/fixtures/stackexchange_titles.jsonl` и хранит `source_url`, `license`, `attribution`, даты источника, тексты вопросов/ответов и комментарии. Его можно пересобрать из Stack Exchange Data Dump:
+## Demo-данные рекомендаций
+
+Большой demo-набор создается из Stack Exchange/Stack Overflow fixture и synthetic top-up:
+
+- 50 пользователей;
+- 1000 технических тредов;
+- 27314 постов;
+- 81460 комментариев;
+- 1500 лайков;
+- 159074 поведенческих событий;
+- профили интересов: backend, frontend, devops, mixed, noisy.
+
+Demo-пользователи:
+
+| профиль | email | пароль |
+| --- | --- | --- |
+| backend | `backend-user@papaya.demo` | `PapayaDemo1!` |
+| frontend | `frontend-user@papaya.demo` | `PapayaDemo1!` |
+| devops | `devops-user@papaya.demo` | `PapayaDemo1!` |
+| mixed | `mixed-user@papaya.demo` | `PapayaDemo1!` |
+| dev admin | `dev@papaya.local` | `papaya-dev-password` |
+
+После ручных просмотров, лайков, комментариев и кликов по рекомендациям можно пересчитать выдачу:
 
 ```bash
-cd apps/recommender
-uv run recommender-import-stackexchange /path/to/Posts.xml \
-  --comments-xml /path/to/Comments.xml \
-  --limit 1000
+docker compose -f docker-compose.yml -f docker-compose.recommender-demo.yml --profile demo-tools run --rm recommender-demo-refresh
 ```
 
-Генератор делит пользователей на скрытые профили интересов: `backend-heavy`, `frontend-heavy`, `devops-heavy`, `mixed-fullstack`, `noisy/low-signal`. Эти профили не передаются модели и не являются обучающими признаками. Они нужны только генератору, чтобы создать правдоподобное поведение: backend-пользователь чаще читает Go/PostgreSQL/backend-треды, frontend-пользователь чаще читает React/Next.js/frontend-треды, mixed-пользователь ходит по нескольким темам, а noisy-пользователь дает слабый и грязный сигнал.
-
-Модель видит только итоговые события вида `user_id -> thread_id -> event_type -> created_at`. Задача модели - по этим действиям восстановить интерес пользователя и рекомендовать треды, которые он еще не видел. Поэтому профили в генераторе выступают как скрытая "правда мира", а не как подсказка модели.
-
-Логика генерации:
-
-1. Создаются пользователи с датой регистрации и скрытым профилем интересов.
-2. Создаются тематические треды: backend, frontend, devops, mixed и noise.
-3. Создаются посты и комментарии с корректной временной последовательностью: тред раньше поста, пост раньше комментария.
-4. Авторы постов и комментариев чаще выбираются из пользователей, которым близка тема треда, но часть действий остается шумовой.
-5. Для каждого пользователя генерируются повторные сессии: просмотр нескольких тематически близких тредов, иногда переход в соседнюю или нерелевантную тему, показ рекомендации и иногда клик по ней.
-6. События создания постов, комментариев и лайков добавляются в общий поток ClickHouse-like событий.
-7. Из raw events строятся дневные агрегаты `user_thread_daily` и `recommendation_daily`.
-8. `validate_synthetic_forum_dataset` проверяет объемы, наличие всех типов событий, временную консистентность, feedback loop рекомендаций и минимальный объем сигналов по каждому пользователю.
-
-Проверить генератор можно так:
+Пересобрать Markdown-отчет:
 
 ```bash
-cd apps/recommender
-uv run pytest tests/test_synthetic.py
+docker compose -f docker-compose.yml -f docker-compose.recommender-demo.yml run --rm recommender-demo-report
 ```
 
-Полный набор recommender-тестов:
+Очистить demo-данные, recommendation history и runs:
 
 ```bash
-cd apps/recommender
-uv run pytest
+docker compose -f docker-compose.yml -f docker-compose.recommender-demo.yml --profile demo-tools run --rm recommender-demo-clean
 ```
 
-Сгенерировать машинный JSON большого теста:
+## Большой тест и отчеты
+
+Сгенерировать machine-readable JSON:
 
 ```bash
 cd apps/recommender
@@ -188,15 +303,16 @@ uv run python -m recommender.synthetic \
   --output ../../docs/recommendation-big-test-report.json
 ```
 
-Собрать человекочитаемый Markdown-отчет с таблицами метрик, Mermaid-графиками и top-N выдачей demo-пользователей:
+Собрать человекочитаемый отчет:
 
 ```bash
 cd apps/recommender
 uv run python -m recommender.reporting \
+  --input ../../docs/recommendation-big-test-report.json \
   --output ../../recommendation-model-report.md
 ```
 
-Загрузить тот же fixture в тестовые PostgreSQL и ClickHouse из `.env`:
+Загрузить synthetic fixture в реальные PostgreSQL и ClickHouse:
 
 ```bash
 cd apps/recommender
@@ -207,118 +323,20 @@ uv run python -m recommender.synthetic_loader \
   --validate
 ```
 
-Поднять полное demo-приложение с большим синтетическим датасетом, обучением модели и готовыми рекомендациями:
+Пересобрать Stack Exchange fixture из Data Dump:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.recommender-demo.yml up --build
+cd apps/recommender
+uv run recommender-import-stackexchange /path/to/Posts.xml \
+  --comments-xml /path/to/Comments.xml \
+  --limit 1000
 ```
-
-Demo-сценарий поднимает PostgreSQL, ClickHouse, Redis для backend-кэша, FastAPI recommender service, backend, frontend, миграции, seed job, обучение, генерацию ClickHouse history и обновляет единый Markdown-отчет в корне проекта: `recommendation-model-report.md`. Seed job создает большой датасет 9.4 и демо-пользователей:
-
-В demo и в запуске на заранее сгенерированном Stack Exchange fixture используется `RECOMMENDER_MODEL_TYPE=winner`: первый запуск выбирает winner-а, последующие запуски переобучают и генерируют выдачу только этим типом модели.
-
-- `backend-user@papaya.demo`;
-- `frontend-user@papaya.demo`;
-- `devops-user@papaya.demo`;
-- `mixed-user@papaya.demo`.
-
-Пароль для всех demo-пользователей: `PapayaDemo1!`. После старта frontend доступен на `http://localhost:3000`; можно войти под любым demo-пользователем и увидеть персональный блок рекомендаций.
-
-Dev-пользователь backend-а создается в dev-режиме:
-
-- `dev@papaya.local`;
-- пароль: `papaya-dev-password`;
-- роль по умолчанию: `admin`, можно заменить через `DEV_USER_ROLE=user`.
-
-### Финальное состояние рекомендаций
-
-Текущий конечный вариант логики рекомендаций:
-
-1. Backend и frontend работают как основной продуктовый путь: пользователь заходит на `http://localhost:3000`, frontend ходит в backend, backend запрашивает персональные рекомендации у FastAPI recommender service.
-2. Recommender обучается на бизнес-данных из PostgreSQL и поведенческих событиях из ClickHouse: просмотры тредов, созданные посты и комментарии, лайки, показы рекомендаций и клики.
-3. В demo-сценарии seed job загружает 1000 технических тредов на базе Stack Exchange/Stack Overflow fixture, 27314 постов, 81460 комментариев, 1500 лайков и 159074 событий.
-4. Train job сравнивает кандидатов, выбирает champion model и сохраняет `model.joblib`, `metadata.json` и content index в `apps/recommender/artifacts`.
-5. Generate job пишет snapshots в ClickHouse `recommendation_history` и статусы запусков в `recommendation_runs`.
-6. Online-выдача строится request-time через FastAPI recommender service, поэтому backend получает `thread_id`, `score`, `recommendation_source`, `model_version`, `run_id` и `generation_id`, а детали тредов догружает из PostgreSQL.
-7. Нормальная выдача помечается `recommendation_source=model`; fallback используется только для новых или sparse-history пользователей и помечается как `fallback_*`.
-8. Для большого demo-набора backend и recommender используют 30-секундные timeouts, потому что первый request path может читать артефакты и агрегаты дольше короткого HTTP timeout.
-
-Текущий проверенный serving-срез:
-
-| поле | значение |
-| --- | --- |
-| model_version | `demo-synthetic-v1` |
-| serving model | `factorization_machine_svd` |
-| recommendation source | `model` |
-| recommendation runs в ClickHouse | `4` |
-| recommendation history rows | `1020` |
-| frontend | `http://localhost:3000` |
-| backend | `http://localhost:8888` |
-| recommender service | `http://localhost:8000` |
-
-Проверенные demo-аккаунты:
-
-| профиль | email | пароль | ожидаемый смысл выдачи |
-| --- | --- | --- | --- |
-| backend | `backend-user@papaya.demo` | `PapayaDemo1!` | PostgreSQL, backend, API |
-| frontend | `frontend-user@papaya.demo` | `PapayaDemo1!` | React, Next.js, frontend |
-| devops | `devops-user@papaya.demo` | `PapayaDemo1!` | Docker, shell, deployment |
-| mixed | `mixed-user@papaya.demo` | `PapayaDemo1!` | смешанная fullstack-выдача |
-| dev admin | `dev@papaya.local` | `papaya-dev-password` | административный dev-пользователь |
-
-Текущие метрики serving-модели:
-
-| метрика | значение | что означает |
-| --- | ---: | --- |
-| `NDCG@10` | 0.9065 | Насколько хорошо отсортирован top-10: релевантные треды стоят выше. Чем ближе к 1, тем лучше порядок выдачи. |
-| `Precision@10` | 0.8941 | Какая доля top-10 рекомендаций оказалась релевантной пользователю. 0.8941 значит примерно 9 из 10 рекомендаций попадают в интерес. |
-| `Recall@10` | 0.0601 | Какую долю всех будущих релевантных тредов пользователя удалось поймать в top-10. Низкое значение нормально, когда релевантных тредов много, а показываем только 10. |
-| `MAP@10` | 0.8738 | Средняя точность с учетом позиций релевантных тредов в top-10. Высокое значение значит, что хорошие рекомендации появляются рано. |
-| `Hit rate@10` | 0.9804 | Доля пользователей, у которых в top-10 есть хотя бы одна релевантная рекомендация. |
-| `Coverage` | 0.2690 | Доля каталога тредов, которую модель вообще использует в рекомендациях. Это защита от выдачи одних и тех же популярных тредов всем. |
-| `Personalization` | 0.9475 | Насколько выдачи разных пользователей отличаются друг от друга. Чем выше, тем меньше одинаковых списков для всех. |
-| `CTR` | 21.7% | Доля кликов по recommendation impressions в сгенерированном behavioral feedback loop. |
-
-После ручных просмотров, лайков, комментариев и кликов по рекомендациям можно быстро пересчитать выдачу:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.recommender-demo.yml --profile demo-tools run --rm recommender-demo-refresh
-```
-
-Отчет можно повторно собрать вручную:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.recommender-demo.yml run --rm recommender-demo-report
-```
-
-Отчет появится в `recommendation-model-report.md`.
-
-Очистить demo-данные, историю рекомендаций и Redis-выдачу по `dataset_id`:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.recommender-demo.yml --profile demo-tools run --rm recommender-demo-clean
-```
-
-Единый человекочитаемый отчет для защиты находится в `recommendation-model-report.md`. Машинный JSON последнего большого теста можно пересобрать в `docs/recommendation-big-test-report.json`.
-
-Что уже сделано по большому синтетическому тесту:
-
-- добавлен генератор `generate_synthetic_forum_dataset`;
-- добавлен масштабируемый конфиг `SyntheticScale`;
-- добавлены скрытые профили пользователей и тематические профили тредов;
-- добавлен feedback loop рекомендаций через `recommendation_impression` и `recommendation_clicked`;
-- добавлены daily aggregates для текущего pipeline;
-- добавлен validation helper;
-- добавлены smoke tests генератора и проверки, что датасет проходит `prepare_data` с train/test split;
-- добавлен CLI `python3 -m recommender.synthetic` с фиксированным seed `9400` и edge-case seeds;
-- добавлен отчет train/test split, который проверяет, что evaluation идет по будущим событиям без пересечения user/thread pairs с train;
-- добавлен загрузчик synthetic fixture в PostgreSQL и ClickHouse: `recommender.synthetic_loader`;
-- добавлены recommender tests для подготовки данных, модели, метрик, baseline comparison, storage loader и большого pipeline smoke;
-- добавлены backend controller tests для endpoint рекомендаций;
-- добавлен сохраненный пример большого отчета с top-N рекомендациями, метриками, baseline comparison и excluded threads.
 
 ## Документация
 
 - [API](docs/api.md)
 - [Архитектура](docs/architecture.md)
 - [Деплой](docs/deployment.md)
+- [Backend README](apps/backend/README.MD)
+- [Frontend README](apps/frontend/README.md)
+- [Recommender README](apps/recommender/README.md)

@@ -136,7 +136,7 @@ services:
       CLICKHOUSE_HTTP_PORT: 8123
       CLICKHOUSE_DB: papaya_analytics
       RECOMMENDER_ARTIFACTS_DIR: /app/apps/recommender/artifacts
-      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-winner}
+      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-catboost_ranker}
       RECOMMENDER_CONTENT_ENABLED: ${RECOMMENDER_CONTENT_ENABLED:-true}
       OPENBLAS_NUM_THREADS: "1"
     volumes:
@@ -152,7 +152,7 @@ services:
         condition: service_completed_successfully
     command: ["uv", "run", "python", "-m", "recommender.api", "--host", "0.0.0.0", "--port", "8000"]
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()\""]
+      test: ["CMD-SHELL", "python -c \"import json, urllib.request; data=json.loads(urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()); raise SystemExit(0 if data.get('model_loaded') is True else 1)\""]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -171,7 +171,7 @@ services:
       CLICKHOUSE_HTTP_PORT: 8123
       CLICKHOUSE_DB: papaya_analytics
       RECOMMENDER_ARTIFACTS_DIR: /app/apps/recommender/artifacts
-      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-winner}
+      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-catboost_ranker}
       RECOMMENDER_CONTENT_ENABLED: ${RECOMMENDER_CONTENT_ENABLED:-true}
       OPENBLAS_NUM_THREADS: "1"
     volumes:
@@ -199,7 +199,7 @@ services:
       CLICKHOUSE_HTTP_PORT: 8123
       CLICKHOUSE_DB: papaya_analytics
       RECOMMENDER_ARTIFACTS_DIR: /app/apps/recommender/artifacts
-      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-winner}
+      RECOMMENDER_MODEL_TYPE: ${RECOMMENDER_MODEL_TYPE:-catboost_ranker}
       RECOMMENDER_CONTENT_ENABLED: ${RECOMMENDER_CONTENT_ENABLED:-true}
       OPENBLAS_NUM_THREADS: "1"
     volumes:

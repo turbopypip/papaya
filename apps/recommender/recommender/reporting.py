@@ -21,6 +21,31 @@ METRIC_COLUMNS = [
     "personalization",
 ]
 
+MODEL_STAT_COLUMNS = [
+    "catboost_ranker_score",
+    "evaluation_users",
+    "evaluation_candidate_threads",
+    "evaluation_positive_threads",
+    "evaluation_avg_candidates_per_user",
+    "evaluation_avg_positives_per_user",
+    "pairwise_auc",
+    "score_positive_mean",
+    "score_negative_mean",
+    "score_margin_mean",
+]
+
+FULL_CATALOG_COLUMNS = [
+    "full_catalog_precision_at_k",
+    "full_catalog_recall_at_k",
+    "full_catalog_hit_rate_at_k",
+    "full_catalog_ndcg_at_k",
+    "full_catalog_map_at_k",
+    "full_catalog_coverage",
+    "full_catalog_diversity",
+    "full_catalog_novelty",
+    "full_catalog_personalization",
+]
+
 
 def load_report(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -33,10 +58,10 @@ def write_markdown_report(path: Path, report: dict[str, Any]) -> None:
 
 def render_markdown_report(report: dict[str, Any]) -> str:
     evaluation = report.get("evaluation", {})
-    champion = evaluation.get("champion", {})
     scale = report.get("scale", {})
     split = report.get("split", {})
-    metrics = evaluation.get("baseline_comparison", {})
+    model_type = str(evaluation.get("model_type") or "catboost_ranker")
+    metrics = evaluation.get("metrics", {})
     content_guardrails = evaluation.get("content_guardrails", {})
     users = evaluation.get("users", [])
     event_types = report.get("event_types", {})
@@ -51,10 +76,10 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         "",
         f"- Seed: `{report.get('seed', 'unknown')}`.",
         f"- Users: {_fmt_int(scale.get('users'))}; threads: {_fmt_int(scale.get('threads'))}; posts: {_fmt_int(scale.get('posts'))}; comments: {_fmt_int(scale.get('comments'))}; events: {_fmt_int(scale.get('events'))}.",
-        f"- Champion model: `{champion.get('champion_model_type', evaluation.get('model_type', 'unknown'))}`.",
-        f"- Champion status: `{champion.get('champion_status', 'unknown')}`.",
-        f"- Champion reason: {champion.get('champion_reason', 'not recorded')}.",
-        f"- Final train/generate pipeline uses winner only: `{evaluation.get('final_pipeline_uses_winner', False)}`.",
+        f"- Production model: `{model_type}`.",
+        f"- Model trained: `{evaluation.get('model_trained', 'unknown')}`.",
+        f"- Feature schema: `{evaluation.get('feature_schema_version', 'not recorded')}`.",
+        "- Model-selection pipeline: `disabled`; normal training, generation, and serving use only the production CatBoostRanker artifact.",
         f"- Normal recommendation sources: `{', '.join(evaluation.get('normal_sources', [])) or 'not recorded'}`.",
         f"- Content backend: `{content_guardrails.get('embedding_backend', 'not recorded')}`; search: `{content_guardrails.get('search_backend', 'not recorded')}`.",
         "",
@@ -73,13 +98,17 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         "",
         _real_content_table(real_content),
         "",
-        "## Metrics",
+        "## Sampled Ranking Metrics",
         "",
-        _metrics_table(metrics),
+        _metrics_table(model_type, metrics),
         "",
-        "## Model Candidates",
+        "## Model Statistics",
         "",
-        _candidate_table(champion.get("ml_candidates", [])),
+        _stats_table(metrics),
+        "",
+        "## Full Catalog Check",
+        "",
+        _full_catalog_table(metrics),
         "",
         "## Content-Aware Layer",
         "",
@@ -126,7 +155,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         "",
         "## Hyperparameters",
         "",
-        _hyperparameters(champion.get("ml_candidates", []), champion.get("champion_model_type")),
+        _hyperparameters(evaluation.get("hyperparameters", {})),
         "",
         "## Exclusions",
         "",
@@ -137,16 +166,35 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _metrics_table(metrics: dict[str, Any]) -> str:
+def _metrics_table(model_type: str, metrics: dict[str, Any]) -> str:
     if not metrics:
         return "No metrics recorded."
     lines = [
-        "| recommender | " + " | ".join(METRIC_COLUMNS) + " |",
+        "| model | " + " | ".join(METRIC_COLUMNS) + " |",
         "| --- |" + " ---: |" * len(METRIC_COLUMNS),
     ]
-    for name, row in sorted(metrics.items()):
-        values = [_fmt_float(row.get(column)) for column in METRIC_COLUMNS]
-        lines.append(f"| {name} | " + " | ".join(values) + " |")
+    values = [_fmt_float(metrics.get(column)) for column in METRIC_COLUMNS]
+    lines.append(f"| {model_type} | " + " | ".join(values) + " |")
+    return "\n".join(lines)
+
+
+def _stats_table(metrics: dict[str, Any]) -> str:
+    values = [(name, metrics.get(name)) for name in MODEL_STAT_COLUMNS if name in metrics]
+    if not values:
+        return "No model statistics recorded."
+    lines = ["| statistic | value |", "| --- | ---: |"]
+    for name, value in values:
+        lines.append(f"| {name} | {_fmt_float(value)} |")
+    return "\n".join(lines)
+
+
+def _full_catalog_table(metrics: dict[str, Any]) -> str:
+    values = [(name.removeprefix("full_catalog_"), metrics.get(name)) for name in FULL_CATALOG_COLUMNS if name in metrics]
+    if not values:
+        return "No full-catalog metrics recorded."
+    lines = ["| metric | value |", "| --- | ---: |"]
+    for name, value in values:
+        lines.append(f"| {name} | {_fmt_float(value)} |")
     return "\n".join(lines)
 
 
@@ -164,30 +212,6 @@ def _real_content_table(real_content: dict[str, Any]) -> str:
     lines = ["| field | value |", "| --- | ---: |"]
     for name, value in rows:
         lines.append(f"| {name} | {value} |")
-    return "\n".join(lines)
-
-
-def _candidate_table(candidates: list[dict[str, Any]]) -> str:
-    if not candidates:
-        return "No ML candidates recorded."
-    lines = [
-        "| candidate | trained | champion_score | NDCG@K | Recall@K | MAP@K | train_s | generate_s |",
-        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
-    ]
-    for candidate in candidates:
-        row = candidate.get("metrics", {})
-        lines.append(
-            "| {model} | {trained} | {score} | {ndcg} | {recall} | {map_} | {train_s} | {generate_s} |".format(
-                model=candidate.get("model_type", candidate.get("requested_model_type", "unknown")),
-                trained=candidate.get("trained", False),
-                score=_fmt_float(candidate.get("champion_score")),
-                ndcg=_fmt_float(row.get("ndcg_at_k")),
-                recall=_fmt_float(row.get("recall_at_k")),
-                map_=_fmt_float(row.get("map_at_k")),
-                train_s=_fmt_float(candidate.get("training_seconds")),
-                generate_s=_fmt_float(candidate.get("generation_seconds")),
-            )
-        )
     return "\n".join(lines)
 
 
@@ -288,16 +312,10 @@ def _select_demo_users(users: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return selected
 
 
-def _hyperparameters(candidates: list[dict[str, Any]], champion_model_type: str | None) -> str:
-    if not candidates:
+def _hyperparameters(params: dict[str, Any]) -> str:
+    if not params:
         return "No hyperparameters recorded."
-    lines = ["| model | role | hyperparameters |", "| --- | --- | --- |"]
-    for candidate in candidates:
-        model = candidate.get("model_type", "unknown")
-        role = "champion" if model == champion_model_type else "candidate"
-        params = json.dumps(candidate.get("hyperparameters", {}), sort_keys=True)
-        lines.append(f"| {model} | {role} | `{params}` |")
-    return "\n".join(lines)
+    return "`" + json.dumps(params, sort_keys=True) + "`"
 
 
 def _exclusion_examples(users: list[dict[str, Any]]) -> str:

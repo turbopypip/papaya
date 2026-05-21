@@ -7,15 +7,13 @@ import traceback
 from time import perf_counter
 
 from recommender.artifacts import load_artifacts
+from recommender.catboost_ranker import CatBoostRankerArtifact, FeatureSchema, MODEL_TYPE, generate_catboost_for_users
 from recommender.clients import create_clickhouse_client, create_postgres_engine
 from recommender.config import RecommenderConfig
 from recommender.content import build_or_load_content_index, load_content_index, performance_guardrails
 from recommender.etl import prepare_data
 from recommender.loaders import load_behavior_data, load_business_data
-from recommender.matrix import InteractionMatrix
 from recommender.metrics import recommendation_daily_quality
-from recommender.modeling import ModelResult
-from recommender.recommendations import generate_for_users
 from recommender.serving import create_run, finish_run, write_recommendation_history
 
 
@@ -62,19 +60,9 @@ def run_generation(
     prepared = prepare_data(business, behavior, half_life_days=config.half_life_days)
 
     artifact = load_artifacts(config.artifacts_dir)
-    matrix = InteractionMatrix(
-        matrix=artifact["matrix"],
-        user_to_index=artifact["user_to_index"],
-        thread_to_index=artifact["thread_to_index"],
-        index_to_user=artifact["index_to_user"],
-        index_to_thread=artifact["index_to_thread"],
-    )
-    model_result = ModelResult(
-        model=artifact["model"],
-        model_type=artifact["model_type"],
-        trained=bool(artifact["trained"]),
-        hyperparameters=artifact.get("hyperparameters", {}),
-    )
+    model_artifact = _catboost_artifact_from_payload(artifact)
+    if model_artifact is None:
+        raise RuntimeError("Production artifact must be model_type=catboost_ranker; retrain recommender-train")
     content_index = None
     if config.content_enabled:
         content_index = load_content_index(config.artifacts_dir)
@@ -86,23 +74,21 @@ def run_generation(
             )
     user_ids = business.users.get_column("user_id").to_list() if business.users.height else prepared.user_ids
     generation_started = perf_counter()
-    recommendations = generate_for_users(
+    recommendations = generate_catboost_for_users(
         user_ids,
-        business.threads,
+        business,
         prepared.interactions,
-        matrix,
-        model_result,
+        model_artifact,
         top_n=config.top_n,
         candidate_pool_size=config.candidate_pool_size,
         min_model_interactions=config.min_model_interactions,
-        content_index=content_index,
     )
     generation_seconds = perf_counter() - generation_started
     history_count = write_recommendation_history(clickhouse, recommendations, config.model_version, run_id)
     metrics = {
         "history_recommendations": float(history_count),
-        "model_type": model_result.model_type,
-        "champion_status": str(artifact.get("champion_status", "champion")),
+        "model_type": MODEL_TYPE,
+        "model_trained": model_artifact.trained,
     }
     if content_index is not None:
         metrics["content_guardrails"] = performance_guardrails(
@@ -121,6 +107,25 @@ def run_generation(
         status="success",
     )
     return metrics
+
+
+def _catboost_artifact_from_payload(artifact: dict[str, object]) -> CatBoostRankerArtifact | None:
+    if str(artifact.get("model_type") or "") != MODEL_TYPE:
+        return None
+    raw_schema = artifact.get("feature_schema")
+    if not isinstance(raw_schema, dict):
+        return None
+    feature_schema = FeatureSchema(
+        version=str(raw_schema["version"]),
+        numeric_features=[str(item) for item in raw_schema["numeric_features"]],
+        categorical_features=[str(item) for item in raw_schema["categorical_features"]],
+    )
+    return CatBoostRankerArtifact(
+        model=artifact["model"],
+        trained=bool(artifact["trained"]),
+        feature_schema=feature_schema,
+        hyperparameters=artifact.get("hyperparameters", {}),
+    )
 
 
 if __name__ == "__main__":

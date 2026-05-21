@@ -60,7 +60,6 @@ import {MarkdownEditor} from '@/shared/Components/Markdown';
 import {StatePanel} from '@/shared/Components/StatePanel';
 import {useSearchPosts} from '@/entities/post/queries/useSearchPosts';
 import {recordThreadView} from '@/entities/thread/api/recordThreadView';
-import {ThreadRecommendationsBlock} from '@/entities/recommendation';
 
 const ThreadPage = ({params}: {params: {id: string}}) => {
   const router = useRouter();
@@ -558,15 +557,6 @@ const ThreadPage = ({params}: {params: {id: string}}) => {
           )}
         </Card.Body>
       </Card.Root>
-      <Box marginTop="1.5rem">
-        <ThreadRecommendationsBlock
-          title="Похожие рекомендации модели"
-          placement="thread_recommendations"
-          enabled={canFetchThread}
-          limit={4}
-          excludeThreadId={thread.ID}
-        />
-      </Box>
       {createPostError ? <Box color="red.500">{createPostError}</Box> : null}
       <Box marginTop="1.5rem" position="relative" maxWidth="32rem">
         <Box

@@ -9,11 +9,18 @@ from recommender.modeling import ModelResult, recommend_for_user
 
 
 def excluded_threads_for_user(user_id: str, interactions: pl.DataFrame, threads: pl.DataFrame) -> set[str]:
-    viewed = (
-        set(interactions.filter(pl.col("user_id") == user_id).get_column("thread_id").to_list())
-        if interactions.height
-        else set()
-    )
+    viewed: set[str] = set()
+    if interactions.height:
+        user_interactions = interactions.filter(pl.col("user_id") == user_id)
+        if {"thread_viewed_count", "like_count", "recommendation_clicked_count"}.issubset(user_interactions.columns):
+            consumed = user_interactions.filter(
+                (pl.col("thread_viewed_count") > 0)
+                | (pl.col("like_count") > 0)
+                | (pl.col("recommendation_clicked_count") > 0)
+            )
+            viewed = set(consumed.get_column("thread_id").to_list())
+        else:
+            viewed = set(user_interactions.get_column("thread_id").to_list())
     own_threads = (
         set(threads.filter(pl.col("author_user_id") == user_id).get_column("thread_id").to_list())
         if threads.height
@@ -61,6 +68,11 @@ def generate_for_users(
     min_model_interactions: int = 1,
     content_index: ContentIndex | None = None,
 ) -> dict[str, list[tuple[str, float, str]]]:
+    catalog_thread_ids = set(threads.get_column("thread_id").to_list()) if threads.height else set()
+    if not catalog_thread_ids:
+        return {user_id: [] for user_id in user_ids}
+    if interactions.height:
+        interactions = interactions.filter(pl.col("thread_id").is_in(catalog_thread_ids))
     popular = popular_recent(interactions, limit=candidate_pool_size)
     latest = latest_active(threads, interactions, limit=candidate_pool_size)
     output: dict[str, list[tuple[str, float, str]]] = {}
@@ -72,7 +84,15 @@ def generate_for_users(
             else 0.0
         )
         use_model = user_events_count >= float(min_model_interactions)
-        model_items = recommend_for_user(model_result, matrix, user_id, candidate_pool_size, exclude) if use_model else []
+        model_items = (
+            [
+                (thread_id, score)
+                for thread_id, score in recommend_for_user(model_result, matrix, user_id, candidate_pool_size, exclude)
+                if thread_id in catalog_thread_ids
+            ]
+            if use_model
+            else []
+        )
         if use_model and model_items:
             output[user_id] = [
                 (thread_id, score, "model")
@@ -83,7 +103,11 @@ def generate_for_users(
         category_items = category_popular(user_id, threads, interactions, limit=candidate_pool_size)
         affinity_items = thread_affinity_recent(user_id, threads, interactions, limit=candidate_pool_size)
         content_items = (
-            content_recommendations_for_user(user_id, interactions, content_index, candidate_pool_size, exclude)
+            [
+                (thread_id, score)
+                for thread_id, score in content_recommendations_for_user(user_id, interactions, content_index, candidate_pool_size, exclude)
+                if thread_id in catalog_thread_ids
+            ]
             if content_index is not None
             else []
         )

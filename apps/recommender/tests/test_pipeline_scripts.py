@@ -28,7 +28,7 @@ def _config(tmp_path) -> RecommenderConfig:
         clickhouse_password="secret",
         artifacts_dir=tmp_path,
         model_version="test-model",
-        model_type="winner",
+        model_type="catboost_ranker",
         top_n=2,
         candidate_pool_size=10,
         half_life_days=21.0,
@@ -123,23 +123,17 @@ def test_train_and_generate_scripts_run_on_synthetic_timezone_aware_data(tmp_pat
     assert (tmp_path / "model.joblib").exists()
     assert not (tmp_path / "champion_report.md").exists()
     assert metrics["recommendation_ctr"] == 0.2
-    assert metrics["champion_model_type"] in {
-        "entity_feature_sgd",
-        "learning_to_rank_sgd",
-        "factorization_machine_svd",
-        "two_tower_dot",
-    }
-    assert len(metrics["ml_candidates"]) == 4
-    assert {candidate["requested_model_type"] for candidate in metrics["ml_candidates"]} == {
-        "entity_feature",
-        "learning_to_rank",
-        "factorization_machine",
-        "two_tower",
-    }
+    assert metrics["model_type"] == "catboost_ranker"
+    assert metrics["model_trained"] is True
+    assert metrics["catboost_ranker_score"] >= 0.0
+    assert metrics["training_rows"] > 0
+    assert "ml_candidates" not in metrics
+    assert "champion_model_type" not in metrics
     assert any(insert["table"] == "recommendation_runs" for insert in clickhouse.inserts)
     metadata = json.loads((tmp_path / "metadata.json").read_text(encoding="utf-8"))
-    assert metadata["params"]["champion_status"] in {"champion", "champion_guardrail_failed"}
-    assert metadata["params"]["model_type"] == metrics["champion_model_type"]
+    assert metadata["model_type"] == "catboost_ranker"
+    assert metadata["params"]["model_type"] == "catboost_ranker"
+    assert metadata["feature_schema_version"] == "catboost_ranker_features_v1"
 
     generation_clickhouse = FakeClickHouse()
     monkeypatch.setattr(generate_recommendations, "load_business_data", lambda _postgres: business)
@@ -154,5 +148,5 @@ def test_train_and_generate_scripts_run_on_synthetic_timezone_aware_data(tmp_pat
     )
 
     assert generation_metrics["history_recommendations"] == 2.0
-    assert generation_metrics["model_type"] == metrics["champion_model_type"]
+    assert generation_metrics["model_type"] == "catboost_ranker"
     assert any(insert["table"] == "recommendation_history" for insert in generation_clickhouse.inserts)
