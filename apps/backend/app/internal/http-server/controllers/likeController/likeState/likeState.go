@@ -24,13 +24,13 @@ func ValidateLikableType(likableType string) bool {
 func CurrentUser(c *gin.Context) (models.User, bool) {
 	user, ok := c.Get("user")
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Войдите в аккаунт"})
 		return models.User{}, false
 	}
 
 	userData, ok := user.(models.User)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Войдите в аккаунт"})
 		return models.User{}, false
 	}
 
@@ -80,6 +80,6 @@ func ResolveThreadID(likableID uuid.UUID, likableType string) (uuid.UUID, bool, 
 		}
 		return post.ThreadId, true, nil
 	default:
-		return uuid.Nil, false, errors.New("invalid likable type")
+		return uuid.Nil, false, errors.New("некорректный тип объекта для лайка")
 	}
 }

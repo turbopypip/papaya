@@ -25,8 +25,7 @@ func SignUp(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Failed to get body",
-			"details": err.Error(),
+			"error": "Не удалось прочитать данные регистрации",
 		})
 		return
 	}
@@ -35,14 +34,14 @@ func SignUp(c *gin.Context) {
 		var validationError authvalidation.PasswordValidationError
 		if errors.As(err, &validationError) {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   "Password does not meet complexity requirements",
+				"error":   "Пароль не соответствует требованиям сложности",
 				"details": validationError.Reasons,
 			})
 			return
 		}
 
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"error": "Пароль не соответствует требованиям сложности",
 		})
 		return
 	}
@@ -50,7 +49,7 @@ func SignUp(c *gin.Context) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), 10)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Failed to generate hashed password",
+			"error": "Не удалось подготовить пароль",
 		})
 
 		return
@@ -59,8 +58,7 @@ func SignUp(c *gin.Context) {
 	userId, err := uuid.NewV6()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":       err.Error(),
-			"description": "Failed to generate user id",
+			"error": "Не удалось создать идентификатор пользователя",
 		})
 
 		return
@@ -77,7 +75,7 @@ func SignUp(c *gin.Context) {
 	result := storage.DB.Create(&user)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create user",
+			"error": "Не удалось создать пользователя",
 		})
 		return
 	}
@@ -90,12 +88,12 @@ func SignUp(c *gin.Context) {
 		forumCache := cache.GetGlobalForumCache()
 		if err := forumCache.CacheUser(ctx, user.Id.String(), user); err != nil {
 			// Логируем ошибку, но не прерываем выполнение
-			c.Header("Cache-Warning", "Failed to cache new user")
+			c.Header("Cache-Warning", "Не удалось обновить кеш пользователя")
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "User created successfully",
+		"message": "Пользователь успешно создан",
 		"user": gin.H{
 			"ID":        user.Id,
 			"username":  user.Username,

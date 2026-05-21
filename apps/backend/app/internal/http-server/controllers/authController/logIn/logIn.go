@@ -19,8 +19,7 @@ func LogIn(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"description": "Failed to get body",
-			"error":       err.Error(),
+			"error": "Не удалось прочитать данные для входа",
 		})
 		return
 	}
@@ -29,7 +28,7 @@ func LogIn(c *gin.Context) {
 	storage.DB.First(&user, "email = ?", body.Email)
 	if user.Username == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Failed to get user",
+			"error": "Неверный email или пароль",
 		})
 
 		return
@@ -38,7 +37,7 @@ func LogIn(c *gin.Context) {
 	err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(body.Password))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid email or password",
+			"error": "Неверный email или пароль",
 		})
 
 		return
@@ -46,8 +45,7 @@ func LogIn(c *gin.Context) {
 
 	if err := serverAuth.SetAuthCookie(c, user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"description": "Failed to create a token",
-			"error":       err.Error(),
+			"error": "Не удалось создать токен авторизации",
 		})
 
 		return

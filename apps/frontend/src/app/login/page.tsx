@@ -22,7 +22,7 @@ const Login = () => {
       await logIn(form);
       router.replace('/');
     } catch {
-      // Error text is rendered from the mutation state.
+      // Текст ошибки отображается из состояния mutation.
     }
   };
 
@@ -43,9 +43,9 @@ const Login = () => {
       <form onSubmit={handleSubmit}>
         <Card.Root maxW="sm">
           <Card.Header>
-            <Card.Title>Log in</Card.Title>
+            <Card.Title>Вход</Card.Title>
             <Card.Description>
-              Fill in the form below to log in an account
+              Введите email и пароль, чтобы войти в аккаунт
             </Card.Description>
           </Card.Header>
           <Card.Body>
@@ -59,14 +59,14 @@ const Login = () => {
                   onChange={handleChange}
                 />
               </Field>
-              <Field label="Password">
+              <Field label="Пароль">
                 <PasswordInput
-                name="password"
-                autoComplete="current-password"
-                placeholder="Enter password"
-                value={form.password}
-                onChange={handleChange}
-              />
+                  name="password"
+                  autoComplete="current-password"
+                  placeholder="Введите пароль"
+                  value={form.password}
+                  onChange={handleChange}
+                />
               </Field>
               {error ? (
                 <Text color="red.500" textStyle="sm">
@@ -77,13 +77,13 @@ const Login = () => {
           </Card.Body>
           <Card.Footer justifyContent="flex-end">
             <Button variant="outline" onClick={handleCancel}>
-              Cancel
+              Отмена
             </Button>
             <Button
               variant="solid"
               type="submit"
               disabled={loaded || !form.email || !form.password}>
-              {loaded ? 'Logging in...' : 'Log in'}
+              {loaded ? 'Входим...' : 'Войти'}
             </Button>
           </Card.Footer>
         </Card.Root>

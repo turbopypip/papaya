@@ -19,20 +19,20 @@ func GetPostsWithThreadId(c *gin.Context) {
 	// Convert threadIDParam to uuid
 	threadID, err := uuid.FromString(threadIDParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid thread id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный идентификатор треда"})
 		return
 	}
 
 	// Convert values to int
 	page, err := strconv.Atoi(pageParam)
 	if err != nil || page < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid page number"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный номер страницы"})
 		return
 	}
 
 	limit, err := strconv.Atoi(limitParam)
 	if err != nil || limit < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid limit number"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный лимит"})
 		return
 	}
 
@@ -47,11 +47,11 @@ func GetPostsWithThreadId(c *gin.Context) {
 		Find(&posts).
 		Error
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Filed to retrieve posts"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить посты"})
 		return
 	}
 	if err := attachments.AttachToPosts(storage.DB, posts); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve post attachments"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить вложения постов"})
 		return
 	}
 

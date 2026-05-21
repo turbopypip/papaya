@@ -19,5 +19,12 @@ type Cache interface {
 	Increment(ctx context.Context, key string) (int64, error)
 	Decrement(ctx context.Context, key string) (int64, error)
 	Expire(ctx context.Context, key string, ttl time.Duration) error
+	SortedSetRevRangeWithScores(ctx context.Context, key string, start, stop int64) ([]SortedSetItem, error)
+	HashGetAll(ctx context.Context, key string) (map[string]string, error)
 	Close() error
+}
+
+type SortedSetItem struct {
+	Member string
+	Score  float64
 }

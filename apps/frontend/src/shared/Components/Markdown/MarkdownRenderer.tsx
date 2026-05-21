@@ -288,7 +288,7 @@ const renderHighlightedNode = (
 
 export const MarkdownRenderer = ({
   content,
-  emptyText = 'Nothing to preview yet',
+  emptyText = 'Пока нечего предпросматривать',
 }: Props) => {
   const blocks = parseBlocks(content);
 

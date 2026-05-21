@@ -1,6 +1,5 @@
 import React from 'react';
-import {Box, Container, Flex, Link} from '@chakra-ui/react';
-import {FaLink} from 'react-icons/fa';
+import { Container, Flex } from '@chakra-ui/react';
 
 const Footer = () => {
   return (
@@ -9,13 +8,7 @@ const Footer = () => {
       height="60px"
       fontFamily="Faculty Glyphic">
       <Flex justifyContent="space-between" alignItems="center" height="100%">
-        <p>Copyright (c) Papaya 2024</p>
-        <Box>
-          <Link href="https://github.com/Project-practice-MEPHI-2024">
-            <FaLink />
-            GitHub
-          </Link>
-        </Box>
+        <p>Papaya 2026</p>
       </Flex>
     </Container>
   );

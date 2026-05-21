@@ -17,13 +17,13 @@ func GetThreads(c *gin.Context) {
 	// Convert values to int
 	page, err := strconv.Atoi(pageParam)
 	if err != nil || page < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid page number"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный номер страницы"})
 		return
 	}
 
 	limit, err := strconv.Atoi(limitParam)
 	if err != nil || limit < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid limit number"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный лимит"})
 		return
 	}
 
@@ -34,17 +34,17 @@ func GetThreads(c *gin.Context) {
 
 	err = storage.DB.Model(&models.Thread{}).Count(&total).Error
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count threads"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось посчитать треды"})
 		return
 	}
 
 	err = storage.DB.Preload("Author").Limit(limit).Offset(offset).Find(&threads).Error
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Filed to retrieve threads"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить треды"})
 		return
 	}
 	if err := attachments.AttachToThreads(storage.DB, threads); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve thread attachments"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить вложения тредов"})
 		return
 	}
 

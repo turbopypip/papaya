@@ -15,7 +15,7 @@ export async function completeAuthSuccess(
 
   const currentUserResponse = await getCurrentUser();
   if (!currentUserResponse.user) {
-    throw new Error('Failed to load current user');
+    throw new Error('Не удалось загрузить текущего пользователя');
   }
 
   queryClient.setQueryData(['current-user'], currentUserResponse);

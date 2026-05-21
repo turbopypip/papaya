@@ -10,6 +10,6 @@ import (
 func LogOut(c *gin.Context) {
 	serverAuth.ClearAuthCookie(c)
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Logged out",
+		"message": "Вы вышли из аккаунта",
 	})
 }

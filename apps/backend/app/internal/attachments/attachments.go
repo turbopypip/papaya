@@ -85,7 +85,7 @@ func FilesFromRequest(c *gin.Context) ([]*multipart.FileHeader, error) {
 	}
 
 	if len(files) > MaxFilesPerOwner {
-		return nil, ValidationError{Message: fmt.Sprintf("maximum %d attachments are allowed", MaxFilesPerOwner)}
+		return nil, ValidationError{Message: fmt.Sprintf("Можно прикрепить не больше %d файлов", MaxFilesPerOwner)}
 	}
 
 	return files, nil
@@ -107,7 +107,7 @@ func CreateFromRequest(c *gin.Context, tx *gorm.DB, ownerType string, ownerID uu
 		return nil, nil, err
 	}
 	if existingCount+int64(len(files)) > MaxFilesPerOwner {
-		return nil, nil, ValidationError{Message: fmt.Sprintf("maximum %d attachments are allowed", MaxFilesPerOwner)}
+		return nil, nil, ValidationError{Message: fmt.Sprintf("Можно прикрепить не больше %d файлов", MaxFilesPerOwner)}
 	}
 
 	uploadDir := UploadDir()
@@ -314,10 +314,10 @@ func MapByOwner(db *gorm.DB, ownerType string, ownerIDs []uuid.UUID) (map[uuid.U
 
 func validateFile(file *multipart.FileHeader) (string, error) {
 	if file.Size <= 0 {
-		return "", ValidationError{Message: "empty attachments are not allowed"}
+		return "", ValidationError{Message: "Нельзя прикрепить пустой файл"}
 	}
 	if file.Size > MaxFileSize {
-		return "", ValidationError{Message: fmt.Sprintf("%s exceeds the %d MB attachment limit", file.Filename, MaxFileSize/1024/1024)}
+		return "", ValidationError{Message: fmt.Sprintf("Файл %s превышает лимит %d МБ", file.Filename, MaxFileSize/1024/1024)}
 	}
 
 	contentType := normalizeContentType(file.Header.Get("Content-Type"))
@@ -333,7 +333,7 @@ func validateFile(file *multipart.FileHeader) (string, error) {
 	}
 
 	if _, ok := allowedContentTypes[contentType]; !ok {
-		return "", ValidationError{Message: fmt.Sprintf("%s has unsupported content type %s", file.Filename, contentType)}
+		return "", ValidationError{Message: fmt.Sprintf("Тип файла %s не поддерживается: %s", file.Filename, contentType)}
 	}
 
 	return contentType, nil

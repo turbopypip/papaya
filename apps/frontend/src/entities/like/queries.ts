@@ -81,6 +81,7 @@ export const useLike = (likableType: LikableType, likableId: string) => {
     loaded: query.isLoading,
     loading: mutation.isPending,
     error:
+      ((query.error || mutation.error) as any)?.response?.data?.error ||
       ((query.error || mutation.error) as any)?.response?.data?.message ||
       ((query.error || mutation.error) ? 'Ошибка обновления лайка' : null),
     toggleLike: () => mutation.mutateAsync(!state.liked_by_me),

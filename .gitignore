@@ -4,6 +4,8 @@
 # Local project notes
 project.md
 tasks.md
+recommendation-model-report.md
+*.docx
 
 # Environment files
 .env
@@ -32,6 +34,38 @@ apps/frontend/*.tsbuildinfo
 apps/backend/uploads/
 apps/backend/app/app
 apps/backend/app/bin/
+
+# Python
+__pycache__/
+*.py[cod]
+.coverage
+.coverage.*
+.hypothesis/
+.mypy_cache/
+.nox/
+.pytest_cache/
+.ruff_cache/
+.tox/
+.venv/
+coverage.xml
+htmlcov/
+*.egg-info/
+venv/
+apps/**/__pycache__/
+apps/**/.coverage
+apps/**/.coverage.*
+apps/**/.hypothesis/
+apps/**/.mypy_cache/
+apps/**/.nox/
+apps/**/.pytest_cache/
+apps/**/.ruff_cache/
+apps/**/.tox/
+apps/**/.venv/
+apps/**/coverage.xml
+apps/**/htmlcov/
+apps/**/*.egg-info/
+apps/**/venv/
+apps/recommender/artifacts/
 
 # Logs
 *.log

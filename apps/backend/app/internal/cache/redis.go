@@ -102,6 +102,36 @@ func (r *RedisCache) Expire(ctx context.Context, key string, ttl time.Duration) 
 	return r.client.Expire(ctx, key, ttl).Err()
 }
 
+func (r *RedisCache) SortedSetRevRangeWithScores(ctx context.Context, key string, start, stop int64) ([]SortedSetItem, error) {
+	values, err := r.client.ZRevRangeWithScores(ctx, key, start, stop).Result()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read sorted set with scores: %w", err)
+	}
+
+	items := make([]SortedSetItem, 0, len(values))
+	for _, value := range values {
+		member, ok := value.Member.(string)
+		if !ok {
+			member = fmt.Sprint(value.Member)
+		}
+		items = append(items, SortedSetItem{
+			Member: member,
+			Score:  value.Score,
+		})
+	}
+
+	return items, nil
+}
+
+func (r *RedisCache) HashGetAll(ctx context.Context, key string) (map[string]string, error) {
+	values, err := r.client.HGetAll(ctx, key).Result()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read hash: %w", err)
+	}
+
+	return values, nil
+}
+
 // Close закрывает соединение с Redis
 func (r *RedisCache) Close() error {
 	return r.client.Close()

@@ -18,7 +18,7 @@ func CreateRole(c *gin.Context) {
 
 	if err := c.BindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Failed to get body",
+			"error": "Не удалось прочитать данные роли",
 		})
 		return
 	}
@@ -26,7 +26,7 @@ func CreateRole(c *gin.Context) {
 	roleId, err := uuid.NewV6()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate role id",
+			"error": "Не удалось создать идентификатор роли",
 		})
 		return
 	}
@@ -40,13 +40,13 @@ func CreateRole(c *gin.Context) {
 	result := storage.DB.Create(&role)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to save role",
+			"error": "Не удалось сохранить роль",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Role created successfully",
+		"message": "Роль успешно создана",
 		"role":    role,
 	})
 }

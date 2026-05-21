@@ -3,27 +3,27 @@ export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_REQUIREMENTS = [
   {
     id: 'minLength',
-    message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters long`,
+    message: `Пароль должен быть не короче ${PASSWORD_MIN_LENGTH} символов`,
     test: (password: string) => password.length >= PASSWORD_MIN_LENGTH,
   },
   {
     id: 'lowercase',
-    message: 'Password must include a lowercase Latin letter',
+    message: 'Пароль должен содержать строчную латинскую букву',
     test: (password: string) => /[a-z]/.test(password),
   },
   {
     id: 'uppercase',
-    message: 'Password must include an uppercase Latin letter',
+    message: 'Пароль должен содержать заглавную латинскую букву',
     test: (password: string) => /[A-Z]/.test(password),
   },
   {
     id: 'number',
-    message: 'Password must include a number',
+    message: 'Пароль должен содержать цифру',
     test: (password: string) => /\d/.test(password),
   },
   {
     id: 'special',
-    message: 'Password must include a special character',
+    message: 'Пароль должен содержать специальный символ',
     test: (password: string) => /[^A-Za-z0-9]/.test(password),
   },
 ] as const;

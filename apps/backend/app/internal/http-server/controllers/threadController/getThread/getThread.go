@@ -15,18 +15,18 @@ import (
 func GetThread(c *gin.Context) {
 	threadID, err := uuid.FromString(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid thread id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный идентификатор треда"})
 		return
 	}
 
 	var thread models.Thread
 	err = storage.DB.Unscoped().Preload("Author").First(&thread, "id = ?", threadID).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Thread not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Тред не найден"})
 		return
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve thread"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить тред"})
 		return
 	}
 	if thread.DeletedAt.Valid {
@@ -39,7 +39,7 @@ func GetThread(c *gin.Context) {
 		return
 	}
 	if err := attachments.AttachToThread(storage.DB, &thread); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve thread attachments"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить вложения треда"})
 		return
 	}
 

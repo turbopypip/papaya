@@ -31,38 +31,38 @@ type FormatAction = {
 
 const FORMAT_ACTIONS: FormatAction[] = [
   {
-    label: 'Bold',
+    label: 'Жирный',
     before: '**',
     after: '**',
-    placeholder: 'bold text',
+    placeholder: 'жирный текст',
     icon: <Bold size={16} />,
   },
   {
-    label: 'Italic',
+    label: 'Курсив',
     before: '*',
     after: '*',
-    placeholder: 'italic text',
+    placeholder: 'текст курсивом',
     icon: <Italic size={16} />,
   },
   {
-    label: 'Link',
+    label: 'Ссылка',
     before: '[',
     after: '](https://example.com)',
-    placeholder: 'link text',
+    placeholder: 'текст ссылки',
     icon: <LinkIcon size={16} />,
   },
   {
-    label: 'Inline code',
+    label: 'Код в строке',
     before: '`',
     after: '`',
-    placeholder: 'code',
+    placeholder: 'код',
     icon: <Code size={16} />,
   },
   {
-    label: 'Code block',
+    label: 'Блок кода',
     before: '```\n',
     after: '\n```',
-    placeholder: 'code',
+    placeholder: 'код',
     icon: <FileCode2 size={16} />,
   },
 ];
@@ -134,7 +134,7 @@ export const MarkdownEditor = ({
             type="button"
             variant={previewOpen ? 'outline' : 'solid'}>
             <PencilLine size={16} />
-            Write
+            Писать
           </Button>
           <Button
             disabled={disabled}
@@ -143,7 +143,7 @@ export const MarkdownEditor = ({
             type="button"
             variant={previewOpen ? 'solid' : 'outline'}>
             <Eye size={16} />
-            Preview
+            Предпросмотр
           </Button>
         </Flex>
       </Flex>

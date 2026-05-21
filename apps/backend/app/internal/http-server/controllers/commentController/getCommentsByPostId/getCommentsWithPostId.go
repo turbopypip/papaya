@@ -19,20 +19,20 @@ func GetCommentsByPostId(c *gin.Context) {
 	// Convert postIDParam to uuid
 	postID, err := uuid.FromString(postIDParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный идентификатор поста"})
 		return
 	}
 
 	// Convert page and limit to int
 	page, err := strconv.Atoi(pageParam)
 	if err != nil || page < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid page number"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный номер страницы"})
 		return
 	}
 
 	limit, err := strconv.Atoi(limitParam)
 	if err != nil || limit < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid limit number"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный лимит"})
 		return
 	}
 
@@ -47,11 +47,11 @@ func GetCommentsByPostId(c *gin.Context) {
 		Find(&comments).
 		Error
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Filed to retrieve posts"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить комментарии"})
 		return
 	}
 	if err := attachments.AttachToComments(storage.DB, comments); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve comment attachments"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить вложения комментариев"})
 		return
 	}
 

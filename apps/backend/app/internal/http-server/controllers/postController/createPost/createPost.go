@@ -3,6 +3,7 @@ package createPost
 import (
 	"context"
 	"net/http"
+	"papaya-backend/internal/analytics"
 	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/cache"
 	"papaya-backend/internal/forumvalidation"
@@ -27,14 +28,13 @@ func CreatePost(c *gin.Context) {
 		body.Content = c.PostForm("content")
 		threadID, err := uuid.FromString(c.PostForm("thread_id"))
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid thread id"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный идентификатор треда"})
 			return
 		}
 		body.ThreadId = threadID
 	} else if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Failed to get body",
-			"details": err.Error(),
+			"error": "Не удалось прочитать данные поста",
 		})
 		return
 	}
@@ -47,8 +47,7 @@ func CreatePost(c *gin.Context) {
 	postId, err := uuid.NewV6()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":       err.Error(),
-			"description": "Failed to generate thread id",
+			"error": "Не удалось создать идентификатор поста",
 		})
 		return
 	}
@@ -93,7 +92,7 @@ func CreatePost(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to create post",
+			"message": "Не удалось создать пост",
 		})
 		return
 	}
@@ -111,12 +110,12 @@ func CreatePost(c *gin.Context) {
 		// Инвалидируем кэш темы (так как в ней появился новый пост)
 		if err := forumCache.InvalidateThread(ctx, body.ThreadId.String()); err != nil {
 			// Логируем ошибку, но не прерываем выполнение
-			c.Header("Cache-Warning", "Failed to invalidate thread cache")
+			c.Header("Cache-Warning", "Не удалось обновить кеш треда")
 		}
 
 		// Кэшируем новый пост
 		if err := forumCache.CachePost(ctx, postId.String(), post); err != nil {
-			c.Header("Cache-Warning", "Failed to cache new post")
+			c.Header("Cache-Warning", "Не удалось обновить кеш поста")
 		}
 	}
 
@@ -126,8 +125,19 @@ func CreatePost(c *gin.Context) {
 		PostID:   postId.String(),
 	})
 
+	analytics.Record(c.Request.Context(), analytics.Event{
+		UserID:     userData.Id,
+		EventType:  analytics.EventPostCreated,
+		EntityType: analytics.EntityPost,
+		EntityID:   post.Id,
+		ThreadID:   post.ThreadId,
+		Metadata: map[string]any{
+			"attachments_count": len(post.Attachments),
+		},
+	})
+
 	c.JSON(http.StatusOK, gin.H{
-		"message": "created post",
+		"message": "Пост создан",
 		"post":    post,
 	})
 }

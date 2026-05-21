@@ -89,7 +89,7 @@ const VisibilityTrigger = React.forwardRef<HTMLButtonElement, ButtonProps>(
         size="sm"
         variant="ghost"
         height="calc(100% - {spacing.2})"
-        aria-label="Toggle password visibility"
+        aria-label="Показать или скрыть пароль"
         {...props}
       />
     );
@@ -137,10 +137,10 @@ export const PasswordStrengthMeter = React.forwardRef<
 function getColorPalette(percent: number) {
   switch (true) {
     case percent < 33:
-      return {label: 'Low', colorPalette: 'red'};
+      return {label: 'Слабый', colorPalette: 'red'};
     case percent < 66:
-      return {label: 'Medium', colorPalette: 'orange'};
+      return {label: 'Средний', colorPalette: 'orange'};
     default:
-      return {label: 'High', colorPalette: 'green'};
+      return {label: 'Сильный', colorPalette: 'green'};
   }
 }

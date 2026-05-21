@@ -20,21 +20,21 @@ import (
 func DeleteThread(c *gin.Context) {
 	threadID, err := uuid.FromString(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid thread id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный идентификатор треда"})
 		return
 	}
 
 	var thread models.Thread
 	if err := storage.DB.First(&thread, "id = ?", threadID).Error; errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Thread not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Тред не найден"})
 		return
 	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve thread"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить тред"})
 		return
 	}
 
 	if !rbac.Can(c, rbac.ResourceThreads, rbac.ActionDelete, thread.UserId) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You cannot delete this thread"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "У вас нет прав удалить этот тред"})
 		return
 	}
 
@@ -122,7 +122,7 @@ func DeleteThread(c *gin.Context) {
 		return tx.Delete(&thread).Error
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete thread"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось удалить тред"})
 		return
 	}
 	attachments.CleanupFiles(removedFiles)
@@ -134,7 +134,7 @@ func DeleteThread(c *gin.Context) {
 	})
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":   "deleted thread",
+		"message":   "Тред удалён",
 		"thread_id": thread.Id,
 	})
 }
@@ -149,11 +149,11 @@ func invalidateCache(c *gin.Context, thread models.Thread, postIDs []uuid.UUID) 
 
 	forumCache := cache.GetGlobalForumCache()
 	if err := forumCache.InvalidateThread(ctx, thread.Id.String()); err != nil {
-		c.Header("Cache-Warning", "Failed to invalidate thread cache")
+		c.Header("Cache-Warning", "Не удалось обновить кеш треда")
 	}
 	for _, postID := range postIDs {
 		if err := forumCache.InvalidatePost(ctx, postID.String()); err != nil {
-			c.Header("Cache-Warning", "Failed to invalidate post cache")
+			c.Header("Cache-Warning", "Не удалось обновить кеш поста")
 			return
 		}
 	}

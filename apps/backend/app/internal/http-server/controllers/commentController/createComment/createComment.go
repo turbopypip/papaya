@@ -5,6 +5,7 @@ import (
 	"github.com/gofrs/uuid"
 	"gorm.io/gorm"
 	"net/http"
+	"papaya-backend/internal/analytics"
 	"papaya-backend/internal/attachments"
 	"papaya-backend/internal/forumvalidation"
 	"papaya-backend/internal/realtime"
@@ -23,14 +24,13 @@ func CreateComment(c *gin.Context) {
 		body.Content = c.PostForm("content")
 		postID, err := uuid.FromString(c.PostForm("post_id"))
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post id"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный идентификатор поста"})
 			return
 		}
 		body.PostId = postID
 	} else if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Failed to get body",
-			"details": err.Error(),
+			"error": "Не удалось прочитать данные комментария",
 		})
 		return
 	}
@@ -43,8 +43,7 @@ func CreateComment(c *gin.Context) {
 	commentId, err := uuid.NewV6()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   err.Error(),
-			"details": "Failed to generate thread id",
+			"error": "Не удалось создать идентификатор комментария",
 		})
 		return
 	}
@@ -89,7 +88,7 @@ func CreateComment(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create comment",
+			"error": "Не удалось создать комментарий",
 		})
 		return
 	}
@@ -106,10 +105,21 @@ func CreateComment(c *gin.Context) {
 			PostID:    body.PostId.String(),
 			CommentID: commentId.String(),
 		})
+		analytics.Record(c.Request.Context(), analytics.Event{
+			UserID:     userData.Id,
+			EventType:  analytics.EventCommentCreated,
+			EntityType: analytics.EntityComment,
+			EntityID:   comment.Id,
+			ThreadID:   post.ThreadId,
+			Metadata: map[string]any{
+				"post_id":           body.PostId.String(),
+				"attachments_count": len(comment.Attachments),
+			},
+		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "created comment",
+		"message": "Комментарий создан",
 		"comment": comment,
 	})
 }

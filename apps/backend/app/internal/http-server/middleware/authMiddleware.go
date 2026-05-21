@@ -14,7 +14,7 @@ import (
 
 func abortUnauthorized(c *gin.Context) {
 	serverAuth.ClearAuthCookie(c)
-	c.AbortWithStatus(http.StatusUnauthorized)
+	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Войдите в аккаунт"})
 }
 
 func Auth(c *gin.Context) {

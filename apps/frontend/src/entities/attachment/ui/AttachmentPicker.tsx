@@ -34,7 +34,7 @@ export const AttachmentPicker = ({files, inputId, onChange}: Props) => {
         <Button asChild size="sm" variant="outline">
           <label htmlFor={inputId}>
             <FaPaperclip />
-            Attach files
+            Прикрепить файлы
           </label>
         </Button>
       </div>

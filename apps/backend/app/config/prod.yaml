@@ -3,10 +3,17 @@ storage_path: "./storage/storage.db"
 log_level: "info" #panic fatal error warning info debug trace
 http_server:
   address: ":8888"
-  timeout: 4s
+  timeout: 30s
   idle_timeout: 60s
 
 redis:
   address: "redis:6379"
   password: ""
   db: 0
+
+clickhouse:
+  enabled: true
+  address: "clickhouse:9000"
+  database: "papaya_analytics"
+  username: "papaya"
+  password: "papaya_analytics_password"

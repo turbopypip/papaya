@@ -23,7 +23,8 @@ export const useSearchThreads = (
     loaded: searchQuery.isLoading,
     error:
       searchQuery.data?.error ??
-      ((searchQuery.error as any)?.response?.data?.message ||
+      ((searchQuery.error as any)?.response?.data?.error ||
+        (searchQuery.error as any)?.response?.data?.message ||
         (searchQuery.error ? 'Ошибка поиска тредов' : null)),
     refetch: searchQuery.refetch,
   };

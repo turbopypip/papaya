@@ -20,19 +20,19 @@ func SearchThreads(c *gin.Context) {
 	limitParam := c.DefaultQuery("limit", "10")
 
 	if title == "" && idParam == "" && len(categories) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "expected 1 or more args. 0 given"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Укажите хотя бы один параметр поиска"})
 		return
 	}
 
 	page, err := strconv.Atoi(pageParam)
 	if err != nil || page < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid page number"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный номер страницы"})
 		return
 	}
 
 	limit, err := strconv.Atoi(limitParam)
 	if err != nil || limit < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid limit number"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный лимит"})
 		return
 	}
 
@@ -51,7 +51,7 @@ func SearchThreads(c *gin.Context) {
 	if idParam != "" {
 		id, err := uuid.FromString(idParam)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный идентификатор"})
 			return
 		}
 		query = query.Where("id = ?", id)
@@ -64,18 +64,18 @@ func SearchThreads(c *gin.Context) {
 	// Search threads
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count threads"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось посчитать треды"})
 		return
 	}
 
 	offset := (page - 1) * limit
 	var threads []models.Thread
 	if err := query.Preload("Author").Limit(limit).Offset(offset).Find(&threads).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search threads"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось найти треды"})
 		return
 	}
 	if err := attachments.AttachToThreads(storage.DB, threads); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve thread attachments"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить вложения тредов"})
 		return
 	}
 
